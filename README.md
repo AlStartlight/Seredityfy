@@ -1,6 +1,4 @@
-Here's a comprehensive `README.md` for the Seredityfy project, incorporating details from the provided GitHub repository and live website:
 
----
 
 # Seredityfy
 
