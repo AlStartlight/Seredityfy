@@ -7,7 +7,7 @@ const HeroPages = () => {
       <h1 className="hidden sm:block text-3xl md:text-6xl font-extrabold text-center text-gray-200">
         Design Generative<br className='pb-5'/> <span className="underline decoration-purple-500 mt-5">Faster</span> <span className="text-purple-700 mt-5">&</span> <span className="overline decoration-purple-500">Better</span>
       </h1>
-      <h1 className="sm:hidden block text-2xl xs:text-3xl font-extrabold text-center text-gray-200">
+      <h1 className="sm:hidden block text-2xl xs:text-4xl font-extrabold text-center text-gray-200">
         Design <span>Faster</span> <br/> <span className="text-purple-700">&</span> <span className="overline decoration-purple-500 ">Better</span>
       </h1>
       <p className='text-gray-300 text-center mt-4 mx-auto max-w-xs sm:max-w-2xl text-sm sm:text-base'>
