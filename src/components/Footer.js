@@ -1,8 +1,13 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Logo } from '../assets/import'
+import { fadeInUp } from '../utils/gsapAnimations'
 export const Footer = () => {
+  const footerRef = useRef(null);
+  useEffect(() => {
+    fadeInUp(footerRef.current);
+  }, []);
   return (
-    <footer className="bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 xs:z-0 xl:z-50 relative">
+    <footer ref={footerRef} className="bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 xs:z-0 xl:z-50 relative">
     <div className="mx-auto w-full max-w-screen-xl p-4 py-6 lg:py-8">
         <div className="md:flex md:justify-between">
           <div className="mb-6 md:mb-0">

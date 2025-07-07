@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Search } from '../assets/import'
+import { fadeInUp } from '../utils/gsapAnimations'
 function Card({ img, title, sub, content, imgicons }) {
+    const cardRef = useRef(null);
+    useEffect(() => {
+        fadeInUp(cardRef.current);
+    }, []);
     return (
-        <div className='max-w-xs  border 
-        border-gray-700  bg-opacity-70 backdrop-blur-md 
-        rounded-lg shadow bg-gray-800 dark:bg-gray-800 dark:border-gray-700 
-        justify-center items-center mb-4 md:mb-0'>
+        <div ref={cardRef} className='max-w-xs border border-gray-700 bg-opacity-70 backdrop-blur-md rounded-lg shadow bg-gray-800 dark:bg-gray-800 dark:border-gray-700 justify-center items-center mb-4 md:mb-0 transition-transform duration-500 ease-out hover:scale-105 hover:shadow-2xl'>
             <img src={img} className='w-100 h-54 rounded-t-lg' alt="seredityfy ai image generator"/>
             <a className='absolute right-2 z-10 bottom-[226px] cursor-pointer'><img src={imgicons} className='w-16 h-16' /></a>
             <div className='px-6  pb-6 pt-2 inset-y-0 mt-[-30px] bg-slate-700 bg-opacity-30 backdrop-blur-sm' >

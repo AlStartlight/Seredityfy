@@ -1,21 +1,24 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Logo } from '../assets/import';
 import { useNavigate } from 'react-router-dom';
 import { RiMenu3Line, RiCloseLine } from 'react-icons/ri'
-
+import { gsap } from 'gsap';
 
 export const Navbar = ({ type = '' }) => {
     const navigate = useNavigate();
     const [toggle, setToggle] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const navRef = useRef(null);
+
+    useEffect(() => {
+        gsap.fromTo(navRef.current, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: 'power3.out' });
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 0);
         };
-
         window.addEventListener('scroll', handleScroll);
-
         return () => {
             window.removeEventListener('scroll', handleScroll);
         };
@@ -33,6 +36,7 @@ export const Navbar = ({ type = '' }) => {
     }
     return (
         <nav
+            ref={navRef}
             className={`${isScrolled ? 'bg-slate-900' : 'bg-gray-800 bg-opacity-20 backdrop-blur-lg'} py-5 ${isScrolled ? 'fixed top-0' : ''} w-full z-50 transition duration-500 ease-in-out ${isScrolled ? 'scrolled' : ''
                 }`}
         >

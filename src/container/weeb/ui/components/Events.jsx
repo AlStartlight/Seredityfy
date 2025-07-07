@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import Card from '../primitives/Card';
+import { staggerFadeIn } from '../../../../utils/gsapAnimations'
 const data = [
   {
     url: "/weeb/Dreamina.jpeg", // Wild horses
@@ -24,23 +25,31 @@ const data = [
   }
 ];
 const EventsComponents = () => {
+  const cardsRef = useRef([]);
+
+  useEffect(() => {
+    staggerFadeIn(cardsRef.current);
+  }, []);
+
   return (
-    <div className='relative'>
-      <h1 className='text-5xl text-center font-bold text-gray-900 mb-20'>
+    <div className='relative px-4 md:px-0'>
+      <h1 className='text-3xl md:text-5xl text-center font-bold text-gray-900 mb-10 md:mb-20'>
         Choose Your Models <br/>To Make Design Interactive with AI
       </h1>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 md:mt-8'>
             {
                 data.map((event, index) => {
-                    return <Card title={event.Title} 
-                    ctaLink={event.ctaLink} 
-                    crumbTitle={event.cumbTitle}  
-                    subHeading={event.subHeading}
-                    url={event.url}
-                    key={index}
-                    />
+                    return (
+                      <div ref={el => cardsRef.current[index] = el} key={index} className="transition-transform duration-500 ease-out hover:scale-105 hover:shadow-2xl">
+                        <Card title={event.Title} 
+                        ctaLink={event.ctaLink} 
+                        crumbTitle={event.cumbTitle}  
+                        subHeading={event.subHeading}
+                        url={event.url}
+                        />
+                      </div>
+                    )
                 }) 
-                
         }
         </div>
     </div>
