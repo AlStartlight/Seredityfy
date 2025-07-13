@@ -32,7 +32,7 @@ export const Navbar = ({ type = '' }) => {
         if(isScrolled){
             return 'white'
         }
-        return type == 'update' ? 'grey' : 'black'
+        return type == 'update' ? 'grey' : 'grey-300';
     }
     return (
         <nav

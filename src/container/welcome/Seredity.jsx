@@ -8,7 +8,7 @@ import { data } from '../../model/models';
  const Seredity = () => {
     return (
         <div
-            className='bg-cover bg-center h-full'
+            className='xl:bg-cover xl:bg-center  h-full'
             style={{ backgroundImage: `url(${AI})` }}
         >
             <Navbar />
