@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { RiMenu3Line, RiCloseLine } from 'react-icons/ri'
 import { gsap } from 'gsap';
 
-export const Navbar = ({ type = '' }) => {
+export const Navbar = ({ type = 'update' }) => {
     const navigate = useNavigate();
     const [toggle, setToggle] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
