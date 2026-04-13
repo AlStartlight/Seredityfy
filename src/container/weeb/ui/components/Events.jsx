@@ -1,6 +1,7 @@
+'use client';
 import React, { useEffect, useRef } from 'react'
-import Card from '../primitives/Card';
-import { staggerFadeIn } from '../../../../utils/gsapAnimations'
+import Card from '@/src/container/weeb/ui/primitives/Card';
+import { staggerFadeIn } from '@/src/utils/gsapAnimations'
 const data = [
   {
     url: "/weeb/Dreamina.jpeg", // Wild horses

@@ -1,8 +1,8 @@
 import React from 'react'
 import UpdateCard from './Update/UpdateCard'
-import { dataSetUpdates } from '../model/UpdateModels'
+import { dataSetUpdates } from '@/src/model/UpdateModels'
 import { NotifyComponents } from './NotifyComponents'
-import { data } from '../model/models'
+import { data } from '@/src/model/models'
 export const UpdatersRoadMap = () => {
   return (
     <div className='flex flex-col md:flex-row justify-end w- mb-[50px]'>

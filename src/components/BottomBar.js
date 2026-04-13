@@ -1,15 +1,16 @@
+'use client';
 import React from 'react'
-import { useNavigate,useLocation } from 'react-router-dom';
+import { useRouter, usePathname } from 'next/navigation';
+
 export const BottomBar = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const path = location.pathname;
+    const router = useRouter();
+    const path = usePathname();
     const home = 'home';
     const contact = 'contact';
     const welcome = 'welcome';
     const support = 'support';
     const _onClickHandleChange = (e) => {
-        navigate(`/${e}`);
+        router.push(`/${e}`);
     }
 
     return (

@@ -1,4 +1,4 @@
-import { Button1,Button2,Button3,IconsAuthor } from "../assets/import";
+import { Button1,Button2,Button3,IconsAuthor } from "@/src/assets/import";
 export const dataSetUpdates=[
     {
         icons:Button1,

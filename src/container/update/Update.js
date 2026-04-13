@@ -1,8 +1,9 @@
+'use client';
 import React from 'react'
-import { Dragons } from '../../assets/import'
-import { Navbar } from '../../components/Navbar'
-import { UpdatersRoadMap } from '../../components/UpdatersRoadMap'
-import { Footer } from '../../components/Footer'
+import { Dragons } from '@/src/assets/import'
+import { Navbar } from '@/src/components/Navbar'
+import { UpdatersRoadMap } from '@/src/components/UpdatersRoadMap'
+import { Footer } from '@/src/components/Footer'
 const Updates = () => {
   return (
     <div className='bg-blue-950 flex flex-1 flex-col h-fit'>

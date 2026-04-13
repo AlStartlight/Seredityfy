@@ -1,11 +1,12 @@
+'use client';
 import React, { useEffect, useState, useRef } from 'react'
-import { Logo } from '../assets/import';
-import { useNavigate } from 'react-router-dom';
+import { Logo } from '@/src/assets/import';
+import { useRouter } from 'next/navigation';
 import { RiMenu3Line, RiCloseLine } from 'react-icons/ri'
 import { gsap } from 'gsap';
 
 export const Navbar = ({ type = 'update' }) => {
-    const navigate = useNavigate();
+    const router = useRouter();
     const [toggle, setToggle] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const navRef = useRef(null);
@@ -25,8 +26,7 @@ export const Navbar = ({ type = 'update' }) => {
     }, []);
 
     const handleClickRegister = () => {
-        navigate('/signup');
-        navigate(0)
+        router.push('/signup');
     }
     const handleScoll=(type)=>{
         if(isScrolled){

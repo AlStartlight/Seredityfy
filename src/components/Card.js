@@ -1,6 +1,7 @@
+'use client';
 import React, { useEffect, useRef } from 'react'
-import { Search } from '../assets/import'
-import { fadeInUp } from '../utils/gsapAnimations'
+import { Search } from '@/src/assets/import'
+import { fadeInUp } from '@/src/utils/gsapAnimations'
 function Card({ img, title, sub, content, imgicons }) {
     const cardRef = useRef(null);
     useEffect(() => {

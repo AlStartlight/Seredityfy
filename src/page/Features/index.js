@@ -1,9 +1,10 @@
+'use client';
 import React from 'react'
-import { ExpandPlatform } from '../../container/Feature/ExpandPlatform'
-import { Navbar } from '../../components/Navbar'
-import { Footer } from '../../components/Footer'
-import { MultiIntegration } from '../../container/Feature/MultiIntegration'
-import WeepApps from '../../container/weeb/page'
+import { ExpandPlatform } from '@/src/container/Feature/ExpandPlatform'
+import { Navbar } from '@/src/components/Navbar'
+import { Footer } from '@/src/components/Footer'
+import { MultiIntegration } from '@/src/container/Feature/MultiIntegration'
+import WeepApps from '@/src/container/weeb/page'
 
 export const Features = () => {
     return (

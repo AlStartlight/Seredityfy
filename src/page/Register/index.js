@@ -1,7 +1,8 @@
+'use client';
 import React from 'react'
-import { Navbar } from '../../components/Navbar'
-import { Footer } from '../../components/Footer'
-import SignUP from '../../container/SIignUP'
+import { Navbar } from '@/src/components/Navbar'
+import { Footer } from '@/src/components/Footer'
+import SignUP from '@/src/container/SIignUP'
 
 const Register = () => {
   return (

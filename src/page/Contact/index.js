@@ -1,5 +1,6 @@
+'use client';
 import React from 'react'
-import { BottomBar } from '../../components/BottomBar'
+import { BottomBar } from '@/src/components/BottomBar'
 export const Contact = () => {
   return (
     <>

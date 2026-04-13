@@ -1,6 +1,6 @@
 import React from 'react'
-import { Back } from '../../assets/import'
-import { dataSetUpdates } from '../../model/UpdateModels'
+import { Back } from '@/src/assets/import'
+import { dataSetUpdates } from '@/src/model/UpdateModels'
 const UpdateCard = ({ icons, title, heading, headingContent, firstListText, secondListText, isDetail,keys,headerDetail,ContentDetail,iconsContent,Authoricons }) => {
     return (
         <div key={keys} className='mt-4 mr-2 md:mr-6 items-center'>

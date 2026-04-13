@@ -1,11 +1,13 @@
+'use client';
 import React from 'react'
-import { Navbar } from '../../components/Navbar'
-import { AI,Union,Vector,Back } from '../../assets/import';
+import { motion } from 'framer-motion'
+import { Navbar } from '@/src/components/Navbar'
+import { AI, Union, Vector, Back } from '@/src/assets/import';
+import { NotifyComponents } from '@/src/components/NotifyComponents';
+import { data } from '@/src/model/models';
+import { fadeInUp, fadeInRight, staggerContainer } from '@/src/animations/variants';
 
-import { NotifyComponents } from '../../components/NotifyComponents';
-import { data } from '../../model/models';
-
- const Seredity = () => {
+const Seredity = () => {
     return (
         <div
             className='xl:bg-cover xl:bg-center  h-full'
@@ -13,33 +15,52 @@ import { data } from '../../model/models';
         >
             <Navbar />
             <div className='items-center lg:flex lg:flex-1 justify-between '>
-                <div className=' flex flex-col p-4 lg:p-20 lg:w-2/4'>
-                    <div className='flex flex-row  items-center '>
+                {/* Hero text block — staggered fadeInUp children */}
+                <motion.div
+                    className=' flex flex-col p-4 lg:p-20 lg:w-2/4'
+                    variants={staggerContainer}
+                    initial="hidden"
+                    animate="visible"
+                >
+                    <motion.div variants={fadeInUp} className='flex flex-row  items-center '>
                         <img src={Union} className='h-2 w-2 mr-2' alt='union seredityfy' />
                         <p className='text-white text-xs'>Introduce Image Features</p>
-                    </div>
-                    <h2 className='py-10 leading-[52px] font-extrabold text-transparent text-6xl bg-clip-text  from-fuchsia-500   via-indigo-500  to-purple-300 bg-gradient-30'> Image With
-                        Seredityfy</h2>
-                    <p className='text-white text-sm w-5/6'>Discover a vibrant community of creators on Seredityfy! Connect with thousands of like-minded individuals on Discord or the web and unleash your imagination through collaborative storytelling. From vivid worlds to unforgettable characters, bring your short text descriptions to life in new and exciting ways. Join Serendipity today and embark on a journey of endless creativity!</p>
-                    <div className='items-center lg:items-stretch'>
+                    </motion.div>
+                    <motion.h2
+                        variants={fadeInUp}
+                        className='py-10 leading-[52px] font-extrabold text-transparent text-6xl bg-clip-text  from-fuchsia-500   via-indigo-500  to-purple-300 bg-gradient-30'
+                    >
+                        Image With Seredityfy
+                    </motion.h2>
+                    <motion.p variants={fadeInUp} className='text-white text-sm w-5/6'>
+                        Discover a vibrant community of creators on Seredityfy! Connect with thousands of like-minded individuals on Discord or the web and unleash your imagination through collaborative storytelling. From vivid worlds to unforgettable characters, bring your short text descriptions to life in new and exciting ways. Join Serendipity today and embark on a journey of endless creativity!
+                    </motion.p>
+                    <motion.div variants={fadeInUp} className='items-center lg:items-stretch'>
                         <button className='mt-8 flex px-4 py-2 items-center  rounded-md text-white w-3/6 lg:w-2/6  bg-gradient-to-tr from-purple-600  via-purple-800 to-violet-800'>
-                        <img src={Vector} className='h-4 w-4 mr-2' alt='vector seredityfy'/> Generate Images
+                            <img src={Vector} className='h-4 w-4 mr-2' alt='vector seredityfy' /> Generate Images
                         </button>
-                    </div>
-                </div>
-                <div className='flex flex-col items-center  lg:items-stretch py-10 lg:py-0 lg:mx-20 mt-[2px] lg:w-3/12 lg:h-[540px] lg:mb-[100px]  xs:z-0 bg-orange-600 bg-opacity-10 backdrop-blur-md shadow-sm shadow-white  '>
+                    </motion.div>
+                </motion.div>
+
+                {/* Card panel — slides in from right */}
+                <motion.div
+                    className='flex flex-col items-center  lg:items-stretch py-10 lg:py-0 lg:mx-20 mt-[2px] lg:w-3/12 lg:h-[540px] lg:mb-[100px]  xs:z-0 bg-orange-600 bg-opacity-10 backdrop-blur-md shadow-sm shadow-white  '
+                    variants={fadeInRight}
+                    initial="hidden"
+                    animate="visible"
+                >
                     <h2 className='text-white text-[20px] py-4 lg:py-6 lg:px-10  lg:text-[24px]'>Updates</h2>
                     {
                         data.map((item, index) => {
                             return (
-                                <NotifyComponents  key={index} titleContent={item.title} img={item.image} dateContent={item.date} />
+                                <NotifyComponents key={index} titleContent={item.title} img={item.image} dateContent={item.date} />
                             )
                         })
                     }
                     <button className='mt-5 px-6 py-[12px] flex items-center justify-center align-center rounded-md text-white text-xs  bg-[conic-gradient(at_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-800 to-slate-400 border-fuchsia-500 border-2 bg-opacity-10 mx-20'>
-                        <img src={Back} className='h-4 w-4 mr-2' alt='back icons seredityfy'/> <span>View More</span>
+                        <img src={Back} className='h-4 w-4 mr-2' alt='back icons seredityfy' /> <span>View More</span>
                     </button>
-                </div>
+                </motion.div>
             </div>
         </div>
     )

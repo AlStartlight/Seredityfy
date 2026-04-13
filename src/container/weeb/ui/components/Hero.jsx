@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 
 const HeroPages = () => {
   return (
@@ -14,10 +14,10 @@ const HeroPages = () => {
           Design Generative empowers creatives, designers, and innovators to craft stunning visual concepts faster and better through the power of AI-driven image generation. Leveraging the advanced capabilities of Sereditify, our proprietary AI generative engine, users can instantly turn ideas into high-quality, futuristic, and elegant visuals with minimal effort
       </p>
       <div className='flex flex-col sm:flex-row justify-center items-center gap-4 mt-8 w-full'>
-          <Link to="/join" className="group text-md relative inline-flex items-center text-white bg-purple-600 px-6 py-2 rounded-sm shadow pointer-events-none group-hover:pointer-events-auto w-full sm:w-auto text-center justify-center">
+          <Link href="/join" className="group text-md relative inline-flex items-center text-white bg-purple-600 px-6 py-2 rounded-sm shadow pointer-events-none group-hover:pointer-events-auto w-full sm:w-auto text-center justify-center">
               Join Now
           </Link>
-          <Link to="/demo" className="group text-md relative inline-flex items-center border-2 text-white px-6 py-2 rounded-xl shadow pointer-events-none group-hover:pointer-events-auto w-full sm:w-auto text-center justify-center">
+          <Link href="/demo" className="group text-md relative inline-flex items-center border-2 text-white px-6 py-2 rounded-xl shadow pointer-events-none group-hover:pointer-events-auto w-full sm:w-auto text-center justify-center">
               View Demo
           </Link>
       </div>

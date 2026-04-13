@@ -1,8 +1,9 @@
+'use client';
 import React, { Suspense } from 'react'
-import { Navbar } from '../../components/Navbar'
-import { PriceApp } from '../../container/Price'
-import { Footer } from '../../components/Footer'
-import { Loader } from '../../components/Loader'
+import { Navbar } from '@/src/components/Navbar'
+import { PriceApp } from '@/src/container/Price'
+import { Footer } from '@/src/components/Footer'
+import { Loader } from '@/src/components/Loader'
 
 export const Price = () => {
 

@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import React from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 
 const TestimonialsComponents = () => {
   return (
@@ -9,7 +9,7 @@ const TestimonialsComponents = () => {
       <div className='flex flex-col justify-center gap-4 items-start mt-20 mb-20 xl:mr-20 mx-10'>
         <p className='text-white text-sm'>CUSTOMERS</p>
         <h1 className='text-white md:text-5xl text-3xl'>BigApp got to the next level</h1>
-            <Link to="/contact" className='hidden md:flex'>
+            <Link href="/contact" className='hidden md:flex'>
               <span className="hidden md:inline-flex group text-sm relative -ml-6  items-center  text-white px-6 py-2 mt-6 rounded-xl pointer-events-none group-hover:pointer-events-auto ">
                View Case Study <ArrowRight className="ml-2 w-5 h-5" color='white' />
               </span>

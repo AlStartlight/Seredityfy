@@ -1,5 +1,5 @@
 import React from 'react'
-import { withPartnerCard } from '../utils/withPartnerCard'
+import { withPartnerCard } from '@/src/utils/withPartnerCard'
 
 const PartnerCard = (props ) => {
     console.log(props.lead);

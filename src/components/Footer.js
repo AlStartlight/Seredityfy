@@ -1,6 +1,7 @@
+'use client';
 import React, { useEffect, useRef } from 'react'
-import { Logo } from '../assets/import'
-import { fadeInUp } from '../utils/gsapAnimations'
+import { Logo } from '@/src/assets/import'
+import { fadeInUp } from '@/src/utils/gsapAnimations'
 export const Footer = () => {
   const footerRef = useRef(null);
   useEffect(() => {

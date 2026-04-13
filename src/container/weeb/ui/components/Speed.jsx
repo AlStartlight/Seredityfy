@@ -1,5 +1,6 @@
+'use client';
 import React,{useEffect,useRef} from 'react'
-import { fadeInUp } from '../../../../utils/gsapAnimations'
+import { fadeInUp } from '@/src/utils/gsapAnimations'
 
 const SpeedComponents = () => {
   const cardRef = useRef(null);

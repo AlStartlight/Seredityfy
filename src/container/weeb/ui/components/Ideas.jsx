@@ -1,7 +1,8 @@
+'use client';
 import React,{useEffect,useRef} from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { fadeInUp } from '../../../../utils/gsapAnimations'
+import { fadeInUp } from '@/src/utils/gsapAnimations'
 
 const IdeasComponents = () => {
   const cardRef = useRef(null);
@@ -15,7 +16,7 @@ const IdeasComponents = () => {
         <h1 className='text-white text-3xl md:text-5xl'><span className='text-purple-600'>Unlimited</span><span className='border-0 text-red-500 h-20 w-32'></span> <span>ideas</span> for your<br/> next great projects</h1>
         <p className='text-gray-300 text-sm w-full md:w-[55%]'>Scelerisque auctor dolor diam tortor, fames faucibus non interdum nunc.
           Ultrices nibh sapien elit gravida ac, rutrum molestie adipiscing lacinia.</p>
-            <Link to="/contact" className='hidden md:flex'>
+            <Link href="/contact" className='hidden md:flex'>
               <span className="hidden md:inline-flex group text-xl relative -ml-6  items-center  text-white px-6 py-2 mt-6 rounded-xl pointer-events-none group-hover:pointer-events-auto ">
                 Discover ideas <ArrowRight className="ml-2 w-5 h-5" color='white' />
               </span>
