@@ -12,7 +12,7 @@ export const Partner = () => {
   return (
     <div className='flex flex-col bg-gradient-135 from-slate-700 via-grey-900 to-fuchsia-900 h-full backdrop-blur-3xl bg-opacity-5'>
       <div className='bg-blue-950 h-full bg-opacity-10 backdrop-blur-3xl'>
-        <div className='px-4 lg:px-32 py-4 lg:py-20  justify-center items-center align-middle'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-20  justify-center items-center align-middle'>
           <div className='flex flex-col items-center mx-auto gap-8 xs:w-5/6'>
             <h1 className='leading-5 font-medium lg:text-4xl text-white xs:text-[25px] sm:text-sm'>Seredityfy Partner</h1>
             <h3 className='leading-5 font-medium lg:text-4xl  text-white xs:text-[18px] xs:text-center xs:whitespace-normal sm:text-xs'>Most Partner ever support deep AI Image and 3D generator </h3>
@@ -20,7 +20,7 @@ export const Partner = () => {
           </div>
           <motion.div
             ref={ref}
-            className='flex flex-col lg:flex-row  mt-20 lg:mx-[80px] gap-2 items-center justify-center'
+            className='flex flex-col lg:flex-row  mt-20 gap-2 items-center justify-center'
             variants={staggerContainer}
             initial="hidden"
             animate={isInView ? 'visible' : 'hidden'}

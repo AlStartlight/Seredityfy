@@ -8,14 +8,14 @@ import { staggerContainer, fadeInUp } from '@/src/animations/variants';
 function Obsviewsly() {
   return (
     <div className='bg-fuchsia-900 bg-opacity-20 backdrop-blur-2xl mt-[-6%] border-t-0 border-fuchsia-500'>
-      <div className='px-20 pt-6'>
-        <h1 className='text-white text-3xl font-semibold'><strong>Features</strong> News</h1>
+      <div className='px-10 pt-6 max-w-7xl mx-auto'>
+        <h1 className='text-white text-3xl  font-semibold'><strong>Features</strong> News</h1>
       </div>
       <motion.div
         className='flex top-20
-         flex-col xl:flex-row sm:flex-col lg:flex-row 2xl:flex-row
+         flex-col max-w-7xl mx-auto xl:flex-row sm:flex-col lg:flex-row 2xl:flex-row
          py-8 sm:py-20 md:py-8 lg:py-12 xl:py-16 2xl:py-20
-          px-4 sm:px-36 xl:px-40 gap-8 2xl:px-80 md:justify-between justify-center items-center'
+          px-4  gap-8  md:justify-between justify-center items-center'
         variants={staggerContainer}
         initial="hidden"
         animate="visible"

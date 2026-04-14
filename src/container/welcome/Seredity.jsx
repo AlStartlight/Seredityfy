@@ -14,10 +14,10 @@ const Seredity = () => {
             style={{ backgroundImage: `url(${AI})` }}
         >
             <Navbar />
-            <div className='items-center lg:flex lg:flex-1 justify-between '>
+            <div className='items-center lg:flex lg:flex-1 justify-between max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
                 {/* Hero text block — staggered fadeInUp children */}
                 <motion.div
-                    className=' flex flex-col p-4 lg:p-20 lg:w-2/4'
+                    className=' flex flex-col p-4 lg:py-20 lg:w-2/4'
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -44,7 +44,7 @@ const Seredity = () => {
 
                 {/* Card panel — slides in from right */}
                 <motion.div
-                    className='flex flex-col items-center  lg:items-stretch py-10 lg:py-0 lg:mx-20 mt-[2px] lg:w-3/12 lg:h-[540px] lg:mb-[100px]  xs:z-0 bg-orange-600 bg-opacity-10 backdrop-blur-md shadow-sm shadow-white  '
+                    className='flex flex-col items-center  lg:items-stretch py-10 lg:py-0 lg:mx-0 mt-[2px] lg:w-3/12 lg:h-[540px] lg:mb-[100px]  xs:z-0 bg-orange-600 bg-opacity-10 backdrop-blur-md shadow-sm shadow-white  '
                     variants={fadeInRight}
                     initial="hidden"
                     animate="visible"
