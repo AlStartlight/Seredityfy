@@ -6,7 +6,7 @@ export default function ImageDetailWithHistory() {
     <div className="bg-background text-on-surface font-body min-h-screen overflow-x-hidden">
       <Sidebar active="Gallery" />
       <TopBar searchPlaceholder="Search gallery or models..." />
-      <main className="ml-64 p-10 min-h-[calc(100vh-5rem)]">
+      <main className="ml-48 p-10 min-h-[calc(100vh-5rem)]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-6">
             <div className="relative group rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/40 bg-surface-container-low aspect-[4/5] lg:aspect-auto lg:h-[750px]">

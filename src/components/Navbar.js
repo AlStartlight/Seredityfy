@@ -26,7 +26,7 @@ export const Navbar = ({ type = 'update' }) => {
     }, []);
 
     const handleClickRegister = () => {
-        router.push('/signup');
+        router.push('/register');
     }
     const handleScoll=(type)=>{
         if(isScrolled){
