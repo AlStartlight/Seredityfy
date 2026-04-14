@@ -27,7 +27,7 @@ export default function Sidebar({ active = 'Generator' }) {
   };
 
   return (
-    <aside className="h-screen w-64 fixed left-0 top-0 bg-[#1f0438]/70 backdrop-blur-3xl flex flex-col py-8 px-4 z-50 overflow-y-auto border-r border-white/5">
+    <aside className="h-screen w-48 fixed left-0 top-0 bg-[#1f0438]/70 backdrop-blur-3xl flex flex-col py-8 px-3 z-50 overflow-y-auto border-r border-white/5">
       <div className="mb-10 px-2">
         <Link href="/admin">
           <h1 className="text-xl font-bold tracking-tight text-[#d5baff] font-headline">Seredityfy AI</h1>

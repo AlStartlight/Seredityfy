@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function TopBar({ searchPlaceholder = 'Search prompts...', active = '' }) {
   return (
-    <header className="flex justify-between items-center w-full px-8 h-20 ml-64 max-w-[calc(100%-16rem)] sticky top-0 z-40 bg-[#1f0438]/70 backdrop-blur-3xl shadow-2xl shadow-purple-900/20 transition-all">
+    <header className="flex justify-between items-center w-full px-8 h-20 ml-48 max-w-[calc(100%-12rem)] sticky top-0 z-40 bg-[#1f0438]/70 backdrop-blur-3xl shadow-2xl shadow-purple-900/20 transition-all">
       <div className="flex items-center gap-8">
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-purple-300/40">search</span>

@@ -25,7 +25,7 @@ export default function AdminLayout({ children }) {
     <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary selection:text-on-primary">
       <Sidebar active={active} />
       <TopBar active={active} />
-      <div className="ml-64">{children}</div>
+      <div className="ml-48">{children}</div>
     </div>
   );
 }

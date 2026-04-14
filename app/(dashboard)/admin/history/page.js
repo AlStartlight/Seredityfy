@@ -2,63 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-
-const HISTORY_ITEMS = [
-  {
-    id: 1,
-    status: 'completed',
-    model: 'seredityfy-v3',
-    time: '2m ago',
-    prompt: '"Cyberpunk cathedral with stained glass windows depicting neural networks, 8k resolution, cinematic lighting..."',
-    ratio: '16:9',
-    gradient: 'from-primary-container/30 via-surface-container-high to-surface-container',
-    accent: 'primary',
-  },
-  {
-    id: 2,
-    status: 'completed',
-    model: 'Dreamweaver-1',
-    time: '1h ago',
-    prompt: '"Surreal desert landscape with floating crystalline monoliths and dual purple moons, hyper-realistic texture..."',
-    ratio: '1:1',
-    gradient: 'from-secondary-container/20 via-surface-container to-surface-container-high',
-    accent: 'secondary',
-  },
-  {
-    id: 3,
-    status: 'error',
-    model: 'seredityfy-v3',
-    time: '3h ago',
-    prompt: '"Macro shot of a mechanical butterfly with translucent wings made of fiber optics..."',
-    ratio: null,
-  },
-  {
-    id: 4,
-    status: 'completed',
-    model: 'Vector-Flow',
-    time: 'Yesterday',
-    prompt: '"Anatomical heart made of clockwork gears and luminous circuits, black background..."',
-    ratio: '9:16',
-    gradient: 'from-tertiary-container/30 via-surface-container-high to-surface-container',
-    accent: 'tertiary',
-  },
-  {
-    id: 5,
-    status: 'completed',
-    model: 'seredityfy-v3',
-    time: '2 days ago',
-    prompt: '"80s vaporwave city street at night, rain reflections, nostalgic neon signs, low-poly style..."',
-    ratio: '4:5',
-    gradient: 'from-primary-container/20 via-surface-container to-secondary-container/20',
-    accent: 'primary',
-  },
-  {
-    id: 6,
-    status: 'loading',
-  },
-];
-
-const PAGES = [1, 2, 3, '...', 12];
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -70,12 +15,36 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
-function HistoryCard({ item, prefersReduced }) {
-  const motionProps = prefersReduced
-    ? {}
-    : { variants: itemVariants };
+function formatTimeAgo(date) {
+  const now = new Date();
+  const diff = now - new Date(date);
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return new Date(date).toLocaleDateString();
+}
 
-  if (item.status === 'loading') {
+function getRatioLabel(width, height) {
+  if (!width || !height) return null;
+  const ratio = width / height;
+  if (Math.abs(ratio - 16/9) < 0.1) return '16:9';
+  if (Math.abs(ratio - 1) < 0.1) return '1:1';
+  if (Math.abs(ratio - 2/3) < 0.1) return '2:3';
+  if (Math.abs(ratio - 9/16) < 0.1) return '9:16';
+  if (Math.abs(ratio - 4/5) < 0.1) return '4:5';
+  return `${width}x${height}`;
+}
+
+function HistoryCard({ item, prefersReduced }) {
+  const motionProps = prefersReduced ? {} : { variants: itemVariants };
+
+  if (item.status === 'PENDING' || item.status === 'PROCESSING') {
     return (
       <motion.div {...motionProps} className="relative flex flex-col bg-surface-container-low/30 rounded-3xl overflow-hidden border border-white/5 animate-pulse">
         <div className="aspect-[4/5] bg-surface-container-high relative">
@@ -93,7 +62,7 @@ function HistoryCard({ item, prefersReduced }) {
     );
   }
 
-  if (item.status === 'error') {
+  if (item.status === 'FAILED' || item.status === 'ERROR') {
     return (
       <motion.div {...motionProps} className="group relative flex flex-col bg-[#2c1245]/40 backdrop-blur-[24px] rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(31,4,56,0.8)] border border-white/5">
         <div className="aspect-[4/5] relative flex items-center justify-center bg-surface-container-highest">
@@ -107,8 +76,8 @@ function HistoryCard({ item, prefersReduced }) {
         </div>
         <div className="p-6 flex-1 flex flex-col opacity-60">
           <div className="flex justify-between items-start mb-3">
-            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Model: {item.model}</span>
-            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">{item.time}</span>
+            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Model: {item.model || 'seredityfy-v2'}</span>
+            <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">{formatTimeAgo(item.createdAt)}</span>
           </div>
           <p className="text-sm font-body text-on-surface line-clamp-2 leading-relaxed mb-4 italic">{item.prompt}</p>
           <button className="mt-auto text-primary text-xs font-label uppercase tracking-widest font-bold flex items-center gap-2">
@@ -120,9 +89,14 @@ function HistoryCard({ item, prefersReduced }) {
   }
 
   return (
-    <motion.div {...motionProps} className="group relative flex flex-col bg-[#2c1245]/40 backdrop-blur-[24px] rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(31,4,56,0.8)] border border-white/5">
-      <div className="aspect-[4/5] relative overflow-hidden">
-        <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`} />
+    <Link href={`/admin/gallery/${item.id}`}>
+      <motion.div {...motionProps} className="group relative flex flex-col bg-[#2c1245]/40 backdrop-blur-[24px] rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(31,4,56,0.8)] border border-white/5 cursor-pointer">
+        <div className="aspect-[4/5] relative overflow-hidden">
+          {item.imageUrl ? (
+            <img src={item.thumbnailUrl || item.imageUrl} alt={item.prompt} className="w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-container/30 via-surface-container-high to-surface-container" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button className="p-2 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-primary/40 transition-colors">
@@ -138,29 +112,57 @@ function HistoryCard({ item, prefersReduced }) {
       </div>
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-3">
-          <span className="text-[10px] font-label text-primary uppercase tracking-widest">Model: {item.model}</span>
-          <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">{item.time}</span>
+          <span className="text-[10px] font-label text-primary uppercase tracking-widest">Model: {item.model || 'seredityfy-v2'}</span>
+          <span className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">{formatTimeAgo(item.createdAt)}</span>
         </div>
         <p className="text-sm font-body text-on-surface line-clamp-2 leading-relaxed mb-4 italic group-hover:text-primary transition-colors">{item.prompt}</p>
         <div className="mt-auto pt-4 border-t border-white/5 flex items-center gap-2">
           <span className="material-symbols-outlined text-sm text-on-surface-variant">image_aspect_ratio</span>
-          <span className="text-[10px] font-label text-on-surface-variant">{item.ratio}</span>
+          <span className="text-[10px] font-label text-on-surface-variant">{getRatioLabel(item.width, item.height)}</span>
           <div className="ml-auto flex -space-x-2">
             <div className="w-5 h-5 rounded-full border border-background bg-primary-container" />
-            <div className="w-5 h-5 rounded-full border border-background bg-secondary" />
           </div>
         </div>
       </div>
     </motion.div>
+    </Link>
   );
 }
 
 export default function HistoryPage() {
-  const [activeFilter, setActiveFilter] = useState('All Models');
+  const [activeFilter, setActiveFilter] = useState('All');
   const [viewMode, setViewMode] = useState('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFab, setShowFab] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalImages, setTotalImages] = useState(0);
   const prefersReduced = useReducedMotion();
+  const { data: session } = useSession();
+
+  const itemsPerPage = 12;
+
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await fetch(`/api/images?page=${currentPage}&limit=${itemsPerPage}&type=user`);
+        const data = await res.json();
+        
+        if (data.images) {
+          setHistory(data.images);
+          setTotalImages(data.pagination?.total || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch history:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    if (session?.user?.id) {
+      fetchHistory();
+    }
+  }, [session, currentPage]);
 
   useEffect(() => {
     const handleScroll = () => setShowFab(window.scrollY > 300);
@@ -168,130 +170,133 @@ export default function HistoryPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const filteredHistory = activeFilter === 'All' 
+    ? history 
+    : activeFilter === 'Completed' 
+      ? history.filter(h => h.status === 'COMPLETED')
+      : history.filter(h => h.status !== 'COMPLETED');
+
+  const totalPages = Math.ceil(totalImages / itemsPerPage);
+
   return (
-    <main className="pt-24 px-10 pb-20 min-h-screen">
-      {/* Page Header */}
+    <main className="p-4 lg:p-6 min-h-[calc(100vh-5rem)]">
       <motion.section
-        className="mb-12"
+        className="mb-6"
         initial={prefersReduced ? false : { opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut' }}
       >
-        <h2 className="font-headline text-5xl font-extrabold tracking-tighter text-on-background mb-2">Generation History</h2>
-        <p className="text-on-surface-variant font-body max-w-2xl leading-relaxed">
-          Your archive of digital dreams. Manage, revisit, and upscale your past neural explorations.
+        <h2 className="text-2xl lg:text-4xl font-headline font-extrabold text-on-surface mb-2">Generation History</h2>
+        <p className="text-on-surface-variant text-sm">
+          Your archive of digital dreams. {totalImages} generations total.
         </p>
       </motion.section>
 
-      {/* Filters & Tools */}
       <motion.section
-        className="flex flex-wrap items-center justify-between gap-6 mb-10"
+        className="flex flex-wrap items-center justify-between gap-4 mb-6"
         initial={prefersReduced ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.15 }}
       >
-        <div className="flex items-center gap-3 relative">
-          {['All Models', 'Completed', 'Drafts'].map((filter) => (
+        <div className="flex items-center gap-2">
+          {['All', 'Completed', 'Failed'].map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`relative px-5 py-2.5 rounded-full text-xs font-label uppercase tracking-widest transition-colors ${
+              className={`px-4 py-2 rounded-xl text-xs font-label uppercase tracking-widest transition-colors ${
                 activeFilter === filter
-                  ? 'bg-[#2c1245]/40 backdrop-blur-[24px] text-primary font-bold border border-primary/10'
+                  ? 'bg-primary/20 backdrop-blur-md text-primary font-bold border border-primary/20'
                   : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
               }`}
             >
-              {activeFilter === filter && !prefersReduced && (
-                <motion.span
-                  layoutId="filter-highlight"
-                  className="absolute inset-0 rounded-full bg-primary/10 border border-primary/20"
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">{filter}</span>
+              {filter}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-xl text-xs font-label text-on-surface-variant">
-            <span>SORT BY:</span>
-            <select className="bg-transparent border-none p-0 text-primary font-bold focus:ring-0 text-xs">
-              <option>NEWEST FIRST</option>
-              <option>OLDEST FIRST</option>
-              <option>A-Z</option>
-            </select>
-          </div>
-          <div className="flex gap-1 p-1 bg-surface-container-low rounded-xl">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-surface-container-highest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: viewMode === 'grid' ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-surface-container-highest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
-            >
-              <span className="material-symbols-outlined">list</span>
-            </button>
-          </div>
+        <div className="flex gap-1 p-1 bg-surface-container-low rounded-xl">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-surface-container-highest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+          >
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: viewMode === 'grid' ? "'FILL' 1" : "'FILL' 0" }}>grid_view</span>
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-surface-container-highest text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+          >
+            <span className="material-symbols-outlined">list</span>
+          </button>
         </div>
       </motion.section>
 
-      {/* History Grid */}
-      <motion.section
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-        variants={prefersReduced ? undefined : containerVariants}
-        initial={prefersReduced ? false : 'hidden'}
-        animate="visible"
-      >
-        {HISTORY_ITEMS.map((item) => (
-          <HistoryCard key={item.id} item={item} prefersReduced={prefersReduced} />
-        ))}
-      </motion.section>
-
-      {/* Pagination */}
-      <section className="mt-16 flex items-center justify-center gap-4">
-        <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#2c1245]/40 backdrop-blur-[24px] text-on-surface-variant hover:text-primary transition-colors">
-          <span className="material-symbols-outlined">chevron_left</span>
-        </button>
-        <div className="flex items-center gap-2">
-          {PAGES.map((page, i) =>
-            page === '...' ? (
-              <span key={`i-${i}`} className="text-on-surface-variant px-2">...</span>
-            ) : (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl font-label transition-colors ${
-                  currentPage === page
-                    ? 'bg-primary text-on-primary font-bold'
-                    : 'bg-[#2c1245]/40 backdrop-blur-[24px] text-on-surface-variant hover:text-primary'
-                }`}
-              >
-                {page}
-              </button>
-            )
-          )}
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="aspect-[4/5] bg-surface-container-low rounded-2xl animate-pulse" />
+          ))}
         </div>
-        <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#2c1245]/40 backdrop-blur-[24px] text-on-surface-variant hover:text-primary transition-colors">
-          <span className="material-symbols-outlined">chevron_right</span>
-        </button>
-      </section>
+      ) : filteredHistory.length === 0 ? (
+        <div className="text-center py-20">
+          <span className="material-symbols-outlined text-6xl text-on-surface-variant/30">history</span>
+          <p className="mt-4 text-on-surface-variant">No generation history yet</p>
+          <a href="/admin/generate" className="mt-4 inline-block px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold">
+            Create Your First Image
+          </a>
+        </div>
+      ) : (
+        <motion.section
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          variants={prefersReduced ? undefined : containerVariants}
+          initial={prefersReduced ? false : 'hidden'}
+          animate="visible"
+        >
+          {filteredHistory.map((item) => (
+            <HistoryCard key={item.id} item={item} prefersReduced={prefersReduced} />
+          ))}
+        </motion.section>
+      )}
 
-      {/* Scroll to top FAB */}
+      {totalPages > 1 && (
+        <section className="mt-8 flex items-center justify-center gap-2">
+          <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container-low text-on-surface-variant hover:text-primary disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">chevron_left</span>
+          </button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg font-label text-xs transition-colors ${
+                currentPage === i + 1
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container-low text-on-surface-variant hover:text-primary disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">chevron_right</span>
+          </button>
+        </section>
+      )}
+
       <AnimatePresence>
         {showFab && (
           <motion.div
-            className="fixed bottom-8 right-8 z-50"
+            className="fixed bottom-6 right-6 z-50"
             initial={prefersReduced ? false : { opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
           >
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="w-14 h-14 bg-surface-container-highest/60 backdrop-blur-xl border border-primary/20 text-primary rounded-2xl flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95"
+              className="w-12 h-12 bg-surface-container-highest/60 backdrop-blur-xl border border-primary/20 text-primary rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95"
             >
               <span className="material-symbols-outlined">arrow_upward</span>
             </button>
