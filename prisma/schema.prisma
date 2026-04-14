@@ -15,8 +15,20 @@ enum ImageStatus {
 
 enum SubscriptionPlan {
   FREE
+  STARTER
   PRO
   ENTERPRISE
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum GenerationMode {
+  HYBRID
+  GEMINI_ONLY
+  CHATGPT_ONLY
 }
 
 model User {
@@ -32,30 +44,61 @@ model User {
   sessions      Session[]
   images        GeneratedImage[]
   subscription  Subscription?
+  promptHistory PromptHistory[]
 }
 
 model GeneratedImage {
   id        String   @id @default(cuid())
   prompt    String   @db.Text
+  enhancedPrompt String? @db.Text
   imageUrl  String?
+  thumbnailUrl String?
   status    ImageStatus @default(PENDING)
-  userId    String
-  model     String   @default("default")
+  userId    String?
+  model     String   @default("seredityfy-v2")
+  visibility Visibility @default(PUBLIC)
+  generationMode GenerationMode @default(HYBRID)
+  metadata  Json?
+  width     Int?
+  height    Int?
+  seed      Int?
+  steps     Int?
+  guidanceScale Float?
+  negativePrompt String?
+  isApproved Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([status])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+model PromptEmbedding {
+  id        String   @id @default(cuid())
+  imageId   String   @unique
+  embedding Json
+  model     String   @default("text-embedding-3-small")
+  createdAt DateTime @default(now())
+
+  @@index([imageId])
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  plan      SubscriptionPlan @default(FREE)
-  validUntil DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  plan          SubscriptionPlan @default(FREE)
+  validUntil    DateTime?
+  credits       Int      @default(10)
+  usedCredits   Int      @default(0)
+  monthlyCredits Int?    @default(10)
+  creditResetDate DateTime?
+  canSharePublic Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
@@ -93,4 +136,28 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PromptHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  prompt    String   @db.Text
+  enhancedPrompt String? @db.Text
+  model     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ImageReport {
+  id        String   @id @default(cuid())
+  imageId   String
+  reporterId String
+  reason    String   @db.Text
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  @@index([imageId])
+  @@index([reporterId])
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   CreditCounter,
@@ -13,9 +13,37 @@ import {
 } from './_components';
 import { useRouter } from "next/navigation";
 
+const CREDIT_PLANS = [
+  { id: 'FREE', name: 'Free', credits: 40, price: '$0', period: '/week' },
+  { id: 'STARTER', name: 'Starter', credits: 200, price: '$9', period: '/week' },
+  { id: 'PRO', name: 'Pro', credits: 500, price: '$29', period: '/week' },
+  { id: 'ENTERPRISE', name: 'Enterprise', credits: 'Unlimited', price: '$99', period: '/week' },
+];
+
 export default function BillingPage() {
   const [activeView, setActiveView] = useState('realtime');
- const router = useRouter(); 
+  const [subscription, setSubscription] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchSubscription() {
+      try {
+        const res = await fetch('/api/subscriptions?current=true');
+        const data = await res.json();
+        setSubscription(data);
+      } catch (error) {
+        console.error('Failed to fetch subscription:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSubscription();
+  }, []);
+
+  const currentPlan = CREDIT_PLANS.find(p => p.id === (subscription?.plan || 'FREE')) || CREDIT_PLANS[0];
+  const availableCredits = subscription?.availableCredits || currentPlan.credits;
+  const usedCredits = subscription?.usedCredits || 0;
   return (
     <main className="p-8 lg:p-12 max-w-[1600px]">
       {/* Header Section */}
@@ -81,16 +109,22 @@ export default function BillingPage() {
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
               <span className="font-label text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                Available Credits
+                {loading ? 'Loading...' : 'Available Credits'}
               </span>
               <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <CreditCounter target={842500} />
-              <span className="text-2xl font-label font-medium text-on-surface-variant">CR</span>
+              {loading ? (
+                <span className="text-7xl font-headline font-extrabold text-on-surface">---</span>
+              ) : (
+                <>
+                  <CreditCounter target={availableCredits === Infinity ? 999999 : availableCredits} />
+                  <span className="text-2xl font-label font-medium text-on-surface-variant">CR</span>
+                </>
+              )}
             </div>
             <p className="text-on-surface-variant mt-4 font-body text-sm">
-              Equivalent to ~140.5 hours of high-performance GPU compute.
+              {loading ? '...' : `Used: ${usedCredits} credits this billing period`}
             </p>
           </div>
           <div className="mt-12 flex gap-4 relative z-10">
@@ -117,12 +151,16 @@ export default function BillingPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container/20 border border-secondary/20 text-secondary text-xs font-label font-bold uppercase tracking-wider mb-4">
                 <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                Active Now
+                Active Plan
               </div>
-              <h3 className="text-3xl font-headline font-bold text-on-surface">Enterprise Tier</h3>
-              <p className="text-on-surface-variant mt-1 font-body">Full access to Aether-3 Ultra models</p>
+              <h3 className="text-3xl font-headline font-bold text-on-surface">
+                {loading ? 'Loading...' : currentPlan.name} Tier
+              </h3>
+              <p className="text-on-surface-variant mt-1 font-body">
+                {loading ? '...' : `${currentPlan.credits} credits per week`}
+              </p>
             </div>
-            <button className="text-primary font-label font-bold flex items-center gap-1 hover:underline">
+            <button onClick={() => router.push('/admin/billing/credits')} className="text-primary font-label font-bold flex items-center gap-1 hover:underline">
               Change Plan{' '}
               <span className="material-symbols-outlined text-sm">north_east</span>
             </button>
@@ -130,15 +168,19 @@ export default function BillingPage() {
           <div className="mt-auto grid grid-cols-3 gap-8 pt-8 relative z-10">
             <div>
               <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Monthly Cost</p>
-              <p className="text-2xl font-bold font-headline text-on-surface">$2,499.00</p>
+              <p className="text-2xl font-bold font-headline text-on-surface">
+                {loading ? '---' : currentPlan.price}
+              </p>
             </div>
             <div>
-              <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Next Billing</p>
-              <p className="text-2xl font-bold font-headline text-on-surface">Oct 24, 2023</p>
+              <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Credits</p>
+              <p className="text-2xl font-bold font-headline text-on-surface">
+                {loading ? '---' : `${usedCredits} / ${availableCredits === Infinity ? '∞' : availableCredits}`}
+              </p>
             </div>
             <div>
-              <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Seat Usage</p>
-              <p className="text-2xl font-bold font-headline text-on-surface">42 / 50</p>
+              <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Status</p>
+              <p className="text-2xl font-bold font-headline text-on-surface">Active</p>
             </div>
           </div>
         </motion.div>
