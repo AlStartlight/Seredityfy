@@ -8,7 +8,7 @@ const history = [
 
 export default function ImageDetailHistoryPage() {
   return (
-    <main className="p-10 min-h-[calc(100vh-5rem)]">
+    <main className="p-4 lg:p-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Left Column: Large Image */}
         <div className="lg:col-span-8 space-y-6">

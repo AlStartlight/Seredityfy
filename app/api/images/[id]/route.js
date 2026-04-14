@@ -3,7 +3,7 @@ import prisma from '@/src/lib/prisma';
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const image = await prisma.generatedImage.findUnique({
       where: { id },
@@ -37,7 +37,7 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { status, imageUrl } = body;
 
@@ -82,7 +82,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const existingImage = await prisma.generatedImage.findUnique({
       where: { id },
