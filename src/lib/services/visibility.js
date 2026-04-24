@@ -147,24 +147,42 @@ export async function checkUserPermissions(userId, width = 1280, height = 720, m
   const subscription = user.subscription;
   const plan = subscription?.plan || 'FREE';
   const limits = SUBSCRIPTION_LIMITS[plan];
-  const creditResetDays = limits.creditResetDays || 7;
-  
+  const billingCycle = subscription?.billingCycle || 'WEEKLY';
+  const resetDays = billingCycle === 'MONTHLY' ? 30 : 7;
+
   const maxCredits = limits.weeklyCredits;
   const usedCredits = subscription?.usedCredits || 0;
-  
+
   let availableCredits = maxCredits;
-  
-  // Weekly reset for all plans (except Enterprise)
+  let nextResetDate = new Date();
+
+  // Auto-renew: reset credits if the period has passed
   if (plan !== 'ENTERPRISE') {
-    const lastReset = subscription?.creditResetDate || subscription?.createdAt;
-    if (lastReset) {
-      const daysSinceReset = Math.floor((Date.now() - new Date(lastReset).getTime()) / (1000 * 60 * 60 * 24));
-      if (daysSinceReset >= creditResetDays) {
-        // Reset credits - new period
+    const resetDate = subscription?.creditResetDate || subscription?.createdAt;
+    if (resetDate) {
+      const now = Date.now();
+      let resetTime = new Date(resetDate).getTime();
+
+      if (now >= resetTime) {
+        // Advance to the next cycle (handle multiple missed cycles)
+        const cycleMs = billingCycle === 'MONTHLY'
+          ? 30 * 24 * 60 * 60 * 1000
+          : 7 * 24 * 60 * 60 * 1000;
+        while (now >= resetTime) resetTime += cycleMs;
+
         availableCredits = maxCredits;
+        nextResetDate = new Date(resetTime);
+
+        await prisma.subscription.update({
+          where: { userId },
+          data: {
+            usedCredits: 0,
+            creditResetDate: nextResetDate,
+          },
+        });
       } else {
-        // Within period - use remaining
         availableCredits = Math.max(0, maxCredits - usedCredits);
+        nextResetDate = new Date(resetDate);
       }
     }
   }
@@ -174,16 +192,12 @@ export async function checkUserPermissions(userId, width = 1280, height = 720, m
   const remainingCredits = plan === 'ENTERPRISE' ? Infinity : Math.max(0, availableCredits - creditCost);
 
   const isApproved = subscription?.canSharePublic ?? true;
-  
-  // Calculate next reset date for display
-  const lastReset = subscription?.creditResetDate || subscription?.createdAt || new Date();
-  const nextResetDate = new Date(lastReset);
-  nextResetDate.setDate(nextResetDate.getDate() + creditResetDays);
 
   return {
     canGenerate,
     plan,
     limits,
+    billingCycle,
     credits: maxCredits === Infinity ? 999999 : maxCredits,
     usedCredits,
     availableCredits: remainingCredits,

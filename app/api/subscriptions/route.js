@@ -28,12 +28,14 @@ export async function GET(request) {
       const limits = SUBSCRIPTION_LIMITS[plan];
       const maxCredits = limits.weeklyCredits === Infinity ? 999999 : limits.weeklyCredits;
       const usedCredits = subscription?.usedCredits || 0;
+      const billingCycle = subscription?.billingCycle || 'WEEKLY';
       const availableCredits = maxCredits - usedCredits;
 
       return NextResponse.json({
         subscription: subscription || null,
         plan,
         limits,
+        billingCycle,
         credits: maxCredits,
         availableCredits,
         usedCredits,
@@ -69,7 +71,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { userId, plan, validUntil } = body;
+    const { userId, plan, validUntil, billingCycle } = body;
 
     if (!userId || !plan) {
       return NextResponse.json(
@@ -100,26 +102,34 @@ export async function POST(request) {
       );
     }
 
+    const cycle = billingCycle || 'WEEKLY';
     const now = new Date();
-    const nextWeek = new Date(now);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextReset = new Date(now);
+    if (cycle === 'MONTHLY') {
+      nextReset.setMonth(nextReset.getMonth() + 1);
+    } else {
+      nextReset.setDate(nextReset.getDate() + 7);
+    }
 
     const subscription = await prisma.subscription.upsert({
       where: { userId },
       update: {
         plan,
-        validUntil: validUntil ? new Date(validUntil) : nextWeek,
+        billingCycle: cycle,
+        validUntil: validUntil ? new Date(validUntil) : nextReset,
         credits,
         monthlyCredits: credits,
-        creditResetDate: nextWeek,
+        creditResetDate: nextReset,
+        usedCredits: 0,
       },
       create: {
         userId,
         plan,
-        validUntil: validUntil ? new Date(validUntil) : nextWeek,
+        billingCycle: cycle,
+        validUntil: validUntil ? new Date(validUntil) : nextReset,
         credits,
         monthlyCredits: credits,
-        creditResetDate: nextWeek,
+        creditResetDate: nextReset,
       },
       include: {
         user: {

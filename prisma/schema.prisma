@@ -11,7 +11,7 @@ datasource db {
 enum ImageStatus {
   PENDING
   COMPLETED
-  FAILED
+  FAILED 
 }
 
 enum SubscriptionPlan {
@@ -19,6 +19,11 @@ enum SubscriptionPlan {
   STARTER
   PRO
   ENTERPRISE
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
 }
 
 enum Visibility {
@@ -89,18 +94,19 @@ model PromptEmbedding {
 }
 
 model Subscription {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  plan          SubscriptionPlan @default(FREE)
-  validUntil    DateTime?
-  credits       Int      @default(10)
-  usedCredits   Int      @default(0)
-  monthlyCredits Int?    @default(10)
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  plan            SubscriptionPlan @default(FREE)
+  billingCycle    BillingCycle     @default(WEEKLY)
+  validUntil      DateTime?
+  credits         Int              @default(10)
+  usedCredits     Int              @default(0)
+  monthlyCredits  Int?             @default(10)
   creditResetDate DateTime?
-  canSharePublic Boolean @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canSharePublic  Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
