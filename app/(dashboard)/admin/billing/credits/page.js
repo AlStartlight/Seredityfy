@@ -302,7 +302,13 @@ export default function CreditsPage() {
             Back to Billing
           </button>
         </Link>
-        <Link href="/admin/billing/payment">
+        <Link
+          href={
+            view === 'plans'
+              ? `/admin/billing/payment?type=plan&id=${selectedPlan}`
+              : `/admin/billing/payment?type=credits&id=${selectedPackage}`
+          }
+        >
           <button className="px-6 py-3 rounded-xl bg-primary text-white font-bold hover:brightness-110">
             Continue to Payment
           </button>
