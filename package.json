@@ -39,7 +39,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma db push && npx prisma generate && next build",
-    "start": "next start && worker",
+    "start": "next start",
     "lint": "next lint",
     "worker": "node scripts/start-worker.js",
     "cloudinary:setup": "node scripts/setup-cloudinary.js",
