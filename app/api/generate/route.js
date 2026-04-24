@@ -4,26 +4,44 @@ import { checkUserPermissions, getVisibilityForUser, SUBSCRIPTION_LIMITS, calcul
 import { auth } from '../../../auth';
 
 async function addToQueueSafely(data) {
+  // Wrap the entire queue operation in a 4-second timeout so a missing or
+  // unreachable Redis never causes the HTTP request to 504.
+  const withTimeout = (promise, ms) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Queue timeout after ${ms}ms`)), ms)
+      ),
+    ]);
+
   try {
-    const Queue = (await import('bull')).default;
-    const redisConfig = {
+    const [Queue, { redisConfig }] = await Promise.all([
+      import('bull').then(m => m.default),
+      import('@/src/lib/redis.js'),
+    ]);
+
+    const queue = new Queue('image-generation', {
       redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD || undefined,
+        ...redisConfig,
+        connectTimeout: 3000,
+        lazyConnect: true,
       },
-    };
-    const imageGenerationQueue = new Queue('image-generation', redisConfig);
-    const job = await imageGenerationQueue.add('generate', data, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-      removeOnComplete: 100,
-      removeOnFail: 50,
     });
-    await imageGenerationQueue.close();
+
+    const job = await withTimeout(
+      queue.add('generate', data, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      }),
+      4000
+    );
+
+    await queue.close();
     return { success: true, jobId: job.id };
   } catch (error) {
-    console.error('[Queue] Failed to add job:', error.message);
+    console.warn('[Queue] Skipped (unavailable):', error.message);
     return { success: false, error: error.message };
   }
 }

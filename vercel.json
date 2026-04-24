@@ -1,5 +1,13 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && next build",
-  "outputDirectory": ".next"
+  "buildCommand": "npx prisma generate && npx prisma db push && next build",
+  "outputDirectory": ".next",
+  "functions": {
+    "app/api/generate/route.js": {
+      "maxDuration": 60
+    },
+    "app/api/generate/[id]/route.js": {
+      "maxDuration": 60
+    }
+  }
 }
