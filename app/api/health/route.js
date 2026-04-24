@@ -32,25 +32,38 @@ export async function GET() {
       nextauth_secret: !!process.env.NEXTAUTH_SECRET,
       google_client:   !!process.env.GOOGLE_CLIENT_ID,
     },
-    db: null,
+    db_connect: null,
+    db_tables:  null,
     status: 'pending',
   };
 
   if (!activeUrl) {
     report.status = 'error';
-    report.db = 'No database URL found in any known variable';
+    report.db_connect = 'No database URL found';
     return NextResponse.json(report, { status: 503 });
   }
 
   try {
     const { default: prisma } = await import('@/src/lib/prisma');
+
+    // 1. Basic connectivity
     await prisma.$queryRaw`SELECT 1`;
-    report.db = 'connected';
-    report.status = 'ok';
+    report.db_connect = 'ok';
+
+    // 2. Check if schema tables exist
+    const tables = await prisma.$queryRaw`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+      ORDER BY tablename
+    `;
+    report.db_tables = tables.map(t => t.tablename);
+
+    report.status = report.db_tables.length === 0 ? 'no_tables' : 'ok';
   } catch (err) {
     report.status = 'error';
-    report.db = err instanceof Error ? err.message : String(err);
+    report.db_connect = err instanceof Error ? err.message : String(err);
   }
 
-  return NextResponse.json(report, { status: report.status === 'ok' ? 200 : 503 });
+  const httpStatus = report.status === 'ok' ? 200 : 503;
+  return NextResponse.json(report, { status: httpStatus });
 }
