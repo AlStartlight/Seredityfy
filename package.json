@@ -49,6 +49,9 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
