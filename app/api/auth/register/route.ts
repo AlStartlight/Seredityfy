@@ -70,10 +70,19 @@ export async function POST(request: Request) {
       token,
     });
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://seredityfy.art';
+
     return NextResponse.json(
       {
         message: "Account created. Please check your email for the verification link.",
         emailSent: emailResult.sent,
+        // When server-side send fails, pass data back so the browser can send
+        // the email via EmailJS directly (client-side requires no private key).
+        ...(emailResult.clientFallback && {
+          clientEmailNeeded: true,
+          verifyToken: token,
+          siteUrl,
+        }),
       },
       { status: 201 }
     );

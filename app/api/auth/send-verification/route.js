@@ -26,28 +26,34 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Email already verified' });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    // Delete stale tokens for this email before creating a new one
+    await prisma.verificationToken.deleteMany({ where: { identifier: email } });
+
+    const token   = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await prisma.verificationToken.create({
-      data: {
-        identifier: email,
-        token,
-        expires,
-      },
+      data: { identifier: email, token, expires },
     });
 
-    const result = await sendVerificationEmail({
-      email,
-      name: user.name,
-      token,
-    });
+    const result  = await sendVerificationEmail({ email, name: user.name, token });
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://seredityfy.art';
 
-    if (!result.sent) {
-      return NextResponse.json({ error: result.reason }, { status: 500 });
+    if (result.sent) {
+      return NextResponse.json({ message: 'Verification email sent' });
     }
 
-    return NextResponse.json({ message: 'Verification email sent' });
+    // Server-side send failed — let the browser retry via EmailJS directly
+    if (result.clientFallback) {
+      return NextResponse.json({
+        message: 'Please send via browser',
+        clientEmailNeeded: true,
+        verifyToken: token,
+        siteUrl,
+      });
+    }
+
+    return NextResponse.json({ error: result.reason }, { status: 500 });
   } catch (error) {
     console.error('[send-verification] error:', error);
     return NextResponse.json({ error: 'Failed to send verification email' }, { status: 500 });
