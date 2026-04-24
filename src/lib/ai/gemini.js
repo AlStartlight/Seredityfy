@@ -14,16 +14,15 @@ function enhancePrompt(prompt) {
 }
 
 /**
- * Generate image via Gemini AI Studio v1alpha endpoint.
+ * Generate image via Gemini API.
  *
- * Image generation via responseModalities is only available on the v1alpha
- * endpoint — NOT v1beta. The SDK defaults to v1beta which causes 404s.
- * We call the REST API directly to control the version.
+ * Only models that explicitly support image output via responseModalities
+ * are tried. Non-image models are excluded to avoid spurious 400 errors.
  *
- * Tried models in order (first success wins):
- *   1. gemini-2.0-flash-preview-image-generation  (preview stable)
- *   2. gemini-2.0-flash-exp                        (experimental)
- *   3. gemini-2.0-flash                            (stable, may support image output)
+ * Tried in order:
+ *   1. gemini-2.0-flash-exp-image-generation  (current experimental)
+ *   2. gemini-2.0-flash-preview-image-generation  (preview stable)
+ *   3. gemini-2.5-flash  (text-only fallback, returns prompt as placeholder)
  */
 export async function generateImageWithGemini(prompt, options = {}) {
   if (!process.env.GEMINI_API_KEY) {
@@ -33,9 +32,8 @@ export async function generateImageWithGemini(prompt, options = {}) {
   const enhancedPrompt = enhancePrompt(prompt);
 
   const models = [
+    'gemini-2.0-flash-exp-image-generation',
     'gemini-2.0-flash-preview-image-generation',
-    'gemini-2.0-flash-exp',
-    'gemini-2.0-flash',
   ];
 
   const body = JSON.stringify({
@@ -52,7 +50,6 @@ export async function generateImageWithGemini(prompt, options = {}) {
 
   for (const modelId of models) {
     try {
-      // v1alpha exposes the experimental image-generation capability
       const url =
         `https://generativelanguage.googleapis.com/v1alpha/models/` +
         `${modelId}:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -66,8 +63,8 @@ export async function generateImageWithGemini(prompt, options = {}) {
       const data = await res.json();
 
       if (!res.ok) {
-        console.warn(`[Gemini] ${modelId} → ${res.status}: ${data.error?.message}`);
-        continue; // try next model
+        console.warn(`[Gemini] ${modelId} → ${res.status}`);
+        continue;
       }
 
       const parts = data.candidates?.[0]?.content?.parts ?? [];
@@ -84,16 +81,33 @@ export async function generateImageWithGemini(prompt, options = {}) {
         };
       }
 
-      console.warn(`[Gemini] ${modelId} returned no image parts — parts:`, JSON.stringify(parts).slice(0, 200));
+      console.warn(`[Gemini] ${modelId} returned no image parts`);
     } catch (err) {
-      console.warn(`[Gemini] ${modelId} fetch error:`, err.message);
+      console.warn(`[Gemini] ${modelId} error:`, err.message);
     }
   }
 
-  return {
-    success: false,
-    error: 'All Gemini image-generation models failed. Check API key and quota.',
-  };
+  /* Fallback: try gemini-2.5-flash for text-only prompt enrichment */
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', safetySettings });
+    const result = await model.generateContent(
+      `Generate a detailed image generation prompt for: "${enhancedPrompt}". Return only the prompt text.`
+    );
+    const textPrompt = result.response.text().trim();
+    return {
+      success: false,
+      imageDescription: textPrompt,
+      prompt: enhancedPrompt,
+      model: 'gemini-2.5-flash',
+      error: 'Image generation unavailable — use text prompt with another engine',
+    };
+  } catch {
+    return {
+      success: false,
+      error: 'All Gemini models failed. Check API key and quota.',
+    };
+  }
 }
 
 export async function generateImageMetadata(prompt) {
@@ -101,7 +115,7 @@ export async function generateImageMetadata(prompt) {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', safetySettings });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', safetySettings });
 
     const result = await model.generateContent(`
       Generate metadata for an AI image from this prompt: "${prompt}"

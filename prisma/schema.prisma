@@ -44,6 +44,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   images        GeneratedImage[]
+  videos        GeneratedVideo[]
   subscription  Subscription?
   promptHistory PromptHistory[]
 }
@@ -149,6 +150,47 @@ model PromptHistory {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum VideoEngine {
+  VEO
+  LUMA
+  RUNWAY
+  PIKA
+}
+
+model GeneratedVideo {
+  id              String      @id @default(cuid())
+  prompt          String      @db.Text
+  enrichedPrompt  String?     @db.Text
+  sourceImageUrl  String?
+  sourceImageName String?
+  videoUrl        String?
+  thumbnailUrl    String?
+  status          VideoStatus @default(PENDING)
+  engine          VideoEngine @default(LUMA)
+  duration        Float?      @default(8)
+  motionStyle     String?
+  cameraStyle     String?
+  style           String?
+  userId          String?
+  aspectRatio     String?     @default("16:9")
+  creditsCost     Int         @default(24)
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ImageReport {
