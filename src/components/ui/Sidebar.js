@@ -9,6 +9,8 @@ const navItems = [
   { icon: 'dashboard', label: 'Dashboard', href: '/admin' },
   { icon: 'auto_awesome', label: 'Generator', href: '/admin/generate' },
   { icon: 'photo_library', label: 'Gallery', href: '/admin/gallery' },
+  { icon: 'psychology', label: 'Intelligence', href: '/admin/intelligence' },
+  { icon: 'explore', label: 'Features', href: '/admin/features' },
   { icon: 'model_training', label: 'Models', href: '/admin/models' },
   { icon: 'history', label: 'History', href: '/admin/history' },
   { icon: 'credit_card', label: 'Billing', href: '/admin/billing' },

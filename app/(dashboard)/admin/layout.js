@@ -10,6 +10,8 @@ function labelFromPath(pathname) {
   if (pathname.startsWith('/admin/generate')) return 'Generator';
   if (pathname.startsWith('/admin/gallery')) return 'Gallery';
   if (pathname.startsWith('/admin/compare')) return 'Gallery';
+  if (pathname.startsWith('/admin/intelligence')) return 'Intelligence';
+  if (pathname.startsWith('/admin/features')) return 'Features';
   if (pathname.startsWith('/admin/models')) return 'Models';
   if (pathname.startsWith('/admin/history')) return 'History';
   if (pathname.startsWith('/admin/billing')) return 'Billing';
