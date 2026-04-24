@@ -6,7 +6,6 @@ const nextConfig = {
   // Node.js APIs like child_process.fork (bull) or native bindings (ioredis).
   serverExternalPackages: ['bull', 'ioredis'],
   images: {
-    domains: ['res.cloudinary.com', 'localhost'],
     remotePatterns: [
       {
         protocol: 'https',
