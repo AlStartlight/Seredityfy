@@ -38,7 +38,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma db push && npx prisma generate && next build",
+    "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "worker": "node scripts/start-worker.js",
