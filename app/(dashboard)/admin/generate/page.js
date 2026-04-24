@@ -43,7 +43,7 @@ export default function GeneratorPage() {
   const [referencePreview, setReferencePreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [strength, setStrength] = useState(0.7);
-  const [credits, setCredits] = useState({ used: 0, remaining: 10, cost: 3 });
+  const [credits, setCredits] = useState({ used: 0, remaining: 10, cost: 8 });
   const fileInputRef = useRef(null);
   
   const { 
@@ -65,7 +65,7 @@ export default function GeneratorPage() {
           setCredits({
             used: data.usedCredits || 0,
             remaining: data.availableCredits || 0,
-            cost: 3,
+            cost: 8,
           });
         }
       } catch (e) {
@@ -382,50 +382,130 @@ fetch('/api/upload/reference', {
               <div className="col-span-8 row-span-2 bg-surface-container-low rounded-[2rem] flex flex-col items-center justify-center text-center p-12 border border-white/5 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5"></div>
                 
-                {isGenerating ? (
-                  <div className="relative z-10">
-                    <div className="w-24 h-24 mb-6 mx-auto relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-2xl animate-pulse rounded-full"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                {currentImage?.imageUrl ? (
+                  /* ── Has existing image ─────────────────────────────── */
+                  <div className="relative z-10 w-full h-full flex items-center justify-center">
+                    <img
+                      src={currentImage.imageUrl}
+                      alt="Generated"
+                      className={`max-w-full max-h-full object-contain rounded-xl transition-all duration-500 ${isGenerating ? 'opacity-30 blur-sm scale-[0.97]' : 'opacity-100'}`}
+                    />
+
+                    {isGenerating ? (
+                      /* Loading overlay on top of existing image */
+                      <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl overflow-hidden">
+                        {/* Blobs */}
+                        <div className="absolute top-[10%] left-[5%] w-64 h-64 rounded-full bg-violet-600/20 blur-[80px] animate-pulse" style={{animationDuration:'3s'}}></div>
+                        <div className="absolute bottom-[15%] right-[5%] w-72 h-72 rounded-full bg-fuchsia-700/15 blur-[90px] animate-pulse" style={{animationDuration:'4s', animationDelay:'1s'}}></div>
+
+                        {/* Scan line */}
+                        <div
+                          className="absolute left-0 right-0 pointer-events-none z-10"
+                          style={{
+                            top: `${Math.max(2, progress)}%`,
+                            height: '2px',
+                            background: 'linear-gradient(90deg, transparent 0%, rgba(168,85,247,0) 5%, rgba(168,85,247,1) 35%, rgba(232,121,249,1) 50%, rgba(168,85,247,1) 65%, rgba(168,85,247,0) 95%, transparent 100%)',
+                            boxShadow: '0 0 30px 8px rgba(168,85,247,0.25)',
+                            transition: 'top 0.5s ease-out',
+                          }}
+                        ></div>
+
+                        {/* Spinner pill */}
+                        <div className="relative z-20 flex flex-col items-center gap-3 bg-black/50 backdrop-blur-md px-7 py-5 rounded-2xl border border-white/10">
+                          <div className="relative w-10 h-10">
+                            <div className="absolute inset-0 border-[3px] border-primary/20 border-t-primary rounded-full animate-spin" style={{animationDuration:'1.1s'}}></div>
+                            <div className="absolute inset-[4px] border-[2px] border-fuchsia-400/20 border-b-fuchsia-400 rounded-full animate-spin" style={{animationDuration:'0.8s', animationDirection:'reverse'}}></div>
+                          </div>
+                          <span className="text-xs font-headline font-semibold text-white/70 tracking-widest uppercase">Generating new image</span>
+                          <span className="text-[10px] text-purple-300/50">{progress}%</span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="absolute bottom-3 left-4 right-4 z-20">
+                          <div className="w-full h-px bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-violet-500 via-primary to-fuchsia-400 transition-all duration-500"
+                              style={{width: `${progress}%`}}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="absolute bottom-4 right-4 flex gap-2">
+                        <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+                          <span className="material-symbols-outlined">download</span>
+                        </button>
+                        <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+                          <span className="material-symbols-outlined">share</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : isGenerating ? (
+                  /* ── No existing image, generating ──────────────────── */
+                  <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
+                    <div className="absolute inset-0 bg-[#060210]"></div>
+
+                    <div className="absolute top-[15%] left-[10%] w-80 h-80 rounded-full bg-violet-600/25 blur-[100px] animate-pulse" style={{animationDuration:'3s'}}></div>
+                    <div className="absolute top-[35%] right-[8%] w-96 h-96 rounded-full bg-fuchsia-700/20 blur-[120px] animate-pulse" style={{animationDuration:'4s', animationDelay:'1s'}}></div>
+                    <div className="absolute bottom-[25%] left-[30%] w-64 h-64 rounded-full bg-pink-600/15 blur-[80px] animate-pulse" style={{animationDuration:'2.5s', animationDelay:'0.5s'}}></div>
+                    <div className="absolute top-[60%] left-[20%] w-48 h-48 rounded-full bg-indigo-500/20 blur-[60px] animate-pulse" style={{animationDuration:'3.5s', animationDelay:'1.5s'}}></div>
+
+                    <div
+                      className="absolute left-0 right-0 z-10 pointer-events-none"
+                      style={{
+                        top: `${Math.max(2, progress)}%`,
+                        height: '3px',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(168,85,247,0) 5%, rgba(168,85,247,1) 35%, rgba(232,121,249,1) 50%, rgba(168,85,247,1) 65%, rgba(168,85,247,0) 95%, transparent 100%)',
+                        boxShadow: '0 0 40px 10px rgba(168,85,247,0.25), 0 0 8px 2px rgba(232,121,249,0.5)',
+                        transition: 'top 0.5s ease-out',
+                      }}
+                    ></div>
+
+                    <div
+                      className="absolute left-0 right-0 top-0 pointer-events-none"
+                      style={{
+                        height: `${progress}%`,
+                        background: 'linear-gradient(to bottom, rgba(168,85,247,0.06) 0%, rgba(168,85,247,0.02) 80%, transparent 100%)',
+                        transition: 'height 0.5s ease-out',
+                      }}
+                    ></div>
+
+                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="relative w-14 h-14">
+                          <div className="absolute inset-0 border-[3px] border-primary/20 border-t-primary rounded-full animate-spin" style={{animationDuration:'1.1s'}}></div>
+                          <div className="absolute inset-[5px] border-[3px] border-fuchsia-400/20 border-b-fuchsia-400 rounded-full animate-spin" style={{animationDuration:'0.8s', animationDirection:'reverse'}}></div>
+                        </div>
+                        <span className="text-xs font-headline font-medium text-white/50 tracking-widest uppercase">Rendering</span>
                       </div>
                     </div>
-                    <h3 className="text-3xl font-headline font-bold text-on-surface mb-2 tracking-tight">Creating your masterpiece...</h3>
-                    <p className="text-purple-300/40 font-body max-w-sm mx-auto mb-4">{progress}% complete</p>
-                    <div className="w-64 mx-auto h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ) : currentImage?.imageUrl ? (
-                  <div className="relative z-10 w-full h-full flex items-center justify-center">
-                    <img 
-                      src={currentImage.imageUrl} 
-                      alt="Generated" 
-                      className="max-w-full max-h-full object-contain rounded-xl"
-                    />
-                    <div className="absolute bottom-4 right-4 flex gap-2">
-                      <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
-                        <span className="material-symbols-outlined">download</span>
-                      </button>
-                      <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
-                        <span className="material-symbols-outlined">share</span>
-                      </button>
+
+                    <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-label text-purple-300/40 uppercase tracking-widest">Generating</span>
+                        <span className="text-xs font-mono text-primary/80">{progress}%</span>
+                      </div>
+                      <div className="w-full h-px bg-white/[0.08] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-violet-500 via-primary to-fuchsia-400 transition-all duration-500 ease-out"
+                          style={{width: `${progress}%`}}
+                        ></div>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative z-10">
-                    <div className="w-24 h-24 mb-6 mx-auto relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-2xl animate-pulse rounded-full"></div>
-                      <span className="material-symbols-outlined text-6xl text-primary font-thin" style={{ fontVariationSettings: "'wght' 200" }}>electric_bolt</span>
+                  /* ── Empty / idle state ──────────────────────────────── */
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-20 h-20 mb-6 mx-auto relative flex items-center justify-center">
+                      <div className="absolute inset-0 bg-primary/10 blur-2xl animate-pulse rounded-full"></div>
+                      <span className="material-symbols-outlined text-5xl text-primary/30" style={{ fontVariationSettings: "'wght' 100" }}>auto_awesome</span>
                     </div>
-                    <h3 className="text-3xl font-headline font-bold text-on-surface mb-2 tracking-tight">Waiting for your electric imagination...</h3>
-                    <p className="text-purple-300/40 font-body max-w-sm mx-auto">
-                      {referenceImage 
-                        ? 'Your reference image is ready. Click generate to create!' 
-                        : 'Input your prompt and click generate to breathe life into the digital void.'}
+                    <h3 className="text-2xl font-headline font-bold text-on-surface/50 mb-2 tracking-tight">Canvas ready</h3>
+                    <p className="text-purple-300/30 font-body text-sm max-w-xs mx-auto">
+                      {referenceImage
+                        ? 'Reference image loaded. Describe your vision and hit Generate.'
+                        : 'Describe your vision above and hit Generate.'}
                     </p>
                   </div>
                 )}
