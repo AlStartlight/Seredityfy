@@ -21,9 +21,38 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-label',
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://seredityfy.com';
+
 export const metadata = {
-  title: 'Seredityfy',
-  description: 'Seredityfy - AI Image Generation Platform',
+  metadataBase: new URL(siteUrl),
+  title: {
+    template: '%s | Seredityfy',
+    default: 'Seredityfy - AI Image Generation Platform',
+  },
+  description:
+    'Seredityfy is an advanced AI-powered image generation platform. Create stunning visuals, edit photos, and generate art with cutting-edge AI models.',
+  openGraph: {
+    title: 'Seredityfy - AI Image Generation Platform',
+    description:
+      'Create stunning AI-generated images with cutting-edge AI models.',
+    url: '/',
+    siteName: 'Seredityfy',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Seredityfy - AI Image Generation Platform',
+    description:
+      'Create stunning AI-generated images with cutting-edge AI models.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }) {
