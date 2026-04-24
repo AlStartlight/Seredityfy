@@ -197,20 +197,100 @@ export async function POST(request) {
       strength,
     });
 
-    if (!queueResult.success) {
-      console.warn('[Generate] Queue unavailable, image will be processed later');
+    // Run generation directly in this request (no separate worker needed on Vercel).
+    // Queue is kept as a side-channel for dedicated worker servers.
+    try {
+      const [{ generateHybridImage }, { uploadBase64Image }] = await Promise.all([
+        import('@/src/lib/ai/hybrid'),
+        import('@/src/lib/storage/cloudinary'),
+      ]);
+
+      const result = await generateHybridImage({
+        prompt: prompt.trim(),
+        userId,
+        model,
+        generationMode,
+        width,
+        height,
+        steps,
+        guidanceScale,
+        negativePrompt,
+        referenceImage,
+        strength,
+      });
+
+      if (!result.success) {
+        await prisma.generatedImage.update({
+          where: { id: image.id },
+          data: { status: 'FAILED' },
+        });
+        return NextResponse.json(
+          { error: result.error || 'Generation failed', status: 'FAILED', id: image.id },
+          { status: 500 }
+        );
+      }
+
+      const uploadResult = await uploadBase64Image(
+        result.imageData,
+        result.mimeType || 'image/png',
+        `seredityfy/users/${userId || 'anonymous'}`
+      );
+
+      if (!uploadResult.success) {
+        await prisma.generatedImage.update({
+          where: { id: image.id },
+          data: { status: 'FAILED' },
+        });
+        return NextResponse.json(
+          { error: 'Failed to upload image', status: 'FAILED', id: image.id },
+          { status: 500 }
+        );
+      }
+
+      const completed = await prisma.generatedImage.update({
+        where: { id: image.id },
+        data: {
+          status: 'COMPLETED',
+          imageUrl: uploadResult.url,
+          thumbnailUrl: uploadResult.url,
+          enhancedPrompt: result.enhancedPrompt,
+          metadata: result.metadata,
+          width: uploadResult.width || width,
+          height: uploadResult.height || height,
+        },
+      });
+
+      const permissions = isAuthenticated
+        ? await checkUserPermissions(userId, width, height, model)
+        : null;
+
+      return NextResponse.json({
+        id: completed.id,
+        status: 'COMPLETED',
+        imageUrl: completed.imageUrl,
+        thumbnailUrl: completed.thumbnailUrl,
+        enhancedPrompt: completed.enhancedPrompt,
+        prompt: completed.prompt,
+        model: completed.model,
+        visibility: completed.visibility,
+        width: completed.width,
+        height: completed.height,
+        createdAt: completed.createdAt,
+        creditsUsed: creditCost,
+        creditsRemaining: permissions?.availableCredits ?? null,
+      }, { status: 201 });
+
+    } catch (genErr) {
+      console.error('[Generate] Direct generation error:', genErr.message);
+      await prisma.generatedImage.update({
+        where: { id: image.id },
+        data: { status: 'FAILED' },
+      }).catch(() => {});
+      return NextResponse.json(
+        { error: genErr.message || 'Generation failed', status: 'FAILED', id: image.id },
+        { status: 500 }
+      );
     }
-
-    const permissions = isAuthenticated ? await checkUserPermissions(userId, width, height, model) : null;
-
-    return NextResponse.json({
-      id: image.id,
-      status: 'PENDING',
-      visibility,
-      message: 'Image generation queued',
-      creditsUsed: creditCost,
-      creditsRemaining: permissions?.availableCredits ?? null,
-    }, { status: 201 });
 
   } catch (err) {
     console.error('Generate API error:', err);

@@ -28,13 +28,17 @@ export function useGenerate() {
         throw new Error(data.error || 'Generation failed');
       }
 
-      setProgress(10);
-      setCurrentImage({
-        id: data.id,
-        status: 'PENDING',
-      });
-
-      if (data.status === 'PENDING') {
+      if (data.status === 'COMPLETED') {
+        // Direct generation succeeded — no polling needed
+        setProgress(100);
+        setCurrentImage(data);
+        setHistory((prev) => [data, ...prev.slice(0, 9)]);
+      } else if (data.status === 'FAILED') {
+        throw new Error(data.error || 'Generation failed');
+      } else {
+        // PENDING — worker-based flow, poll for result
+        setProgress(10);
+        setCurrentImage({ id: data.id, status: 'PENDING' });
         pollImageStatus(data.id);
       }
 
