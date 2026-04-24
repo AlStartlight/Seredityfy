@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -62,7 +62,7 @@ function NoPlanSelected() {
 }
 
 /* ─── Main ──────────────────────────────────────────────────────────────── */
-export default function PaymentPage() {
+function PaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -362,5 +362,20 @@ export default function PaymentPage() {
         </motion.div>
       </div>
     </main>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-purple-300/50 font-label">Loading checkout...</p>
+        </div>
+      </main>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }
