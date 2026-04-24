@@ -43,7 +43,7 @@ export default function GeneratorPage() {
   const [referencePreview, setReferencePreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [strength, setStrength] = useState(0.7);
-  const [credits, setCredits] = useState({ used: 0, remaining: 10, cost: 8 });
+  const [credits, setCredits] = useState({ used: 0, remaining: 40, cost: 8 });
   const fileInputRef = useRef(null);
   
   const { 
@@ -61,13 +61,13 @@ export default function GeneratorPage() {
       try {
         const res = await fetch('/api/subscriptions?current=true');
         const data = await res.json();
-        if (data?.subscription) {
-          setCredits({
-            used: data.usedCredits || 0,
-            remaining: data.availableCredits || 0,
-            cost: 8,
-          });
-        }
+        // availableCredits is always returned from the API even when no
+        // subscription row exists yet (new user defaults to FREE = 40 CR).
+        setCredits({
+          used: data.usedCredits ?? 0,
+          remaining: data.availableCredits ?? 40,
+          cost: 8,
+        });
       } catch (e) {
         console.error('Failed to fetch credits:', e);
       }
@@ -106,13 +106,11 @@ export default function GeneratorPage() {
       // Update credits after successful generation
       const res = await fetch('/api/subscriptions?current=true');
       const data = await res.json();
-      if (data?.subscription) {
-        setCredits(prev => ({
-          ...prev,
-          used: data.usedCredits || 0,
-          remaining: data.availableCredits || 0,
-        }));
-      }
+      setCredits(prev => ({
+        ...prev,
+        used: data.usedCredits ?? prev.used,
+        remaining: data.availableCredits ?? prev.remaining,
+      }));
     } catch (err) {
       console.error('Generation failed:', err);
     }
