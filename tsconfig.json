@@ -40,6 +40,11 @@
     "jsconfig.json"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "stitch",
+    "src/App.js",
+    "src/App.css",
+    "src/setupTests.js",
+    "src/reportWebVitals.js"
   ]
 }
