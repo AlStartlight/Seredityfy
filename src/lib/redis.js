@@ -8,10 +8,10 @@ function getRedisConfig() {
       host,
       port: 6379,
       password: restToken,
-      tls: { rejectUnauthorized: false },  // required for Upstash TLS
+      tls: { rejectUnauthorized: false },
       connectTimeout: 5000,
-      enableOfflineQueue: false,           // fail fast when Redis is unreachable
-      maxRetriesPerRequest: 1,
+      // Do NOT set enableOfflineQueue: false — Bull issues commands during
+      // the connection handshake and needs the offline queue to buffer them.
     };
   }
 
@@ -20,8 +20,6 @@ function getRedisConfig() {
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     ...(process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } : {}),
     connectTimeout: 5000,
-    enableOfflineQueue: false,
-    maxRetriesPerRequest: 1,
   };
 }
 

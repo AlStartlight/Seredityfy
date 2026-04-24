@@ -4,41 +4,14 @@ import { checkUserPermissions, getVisibilityForUser, SUBSCRIPTION_LIMITS, calcul
 import { auth } from '../../../auth';
 
 async function addToQueueSafely(data) {
-  // Wrap the entire queue operation in a 4-second timeout so a missing or
-  // unreachable Redis never causes the HTTP request to 504.
-  const withTimeout = (promise, ms) =>
-    Promise.race([
-      promise,
+  try {
+    const { addImageGenerationJob } = await import('@/src/lib/queue/imageQueue.js');
+    const job = await Promise.race([
+      addImageGenerationJob(data),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Queue timeout after ${ms}ms`)), ms)
+        setTimeout(() => reject(new Error('Queue timeout')), 8000)
       ),
     ]);
-
-  try {
-    const [Queue, { redisConfig }] = await Promise.all([
-      import('bull').then(m => m.default),
-      import('@/src/lib/redis.js'),
-    ]);
-
-    const queue = new Queue('image-generation', {
-      redis: {
-        ...redisConfig,
-        connectTimeout: 3000,
-        lazyConnect: true,
-      },
-    });
-
-    const job = await withTimeout(
-      queue.add('generate', data, {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2000 },
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      }),
-      4000
-    );
-
-    await queue.close();
     return { success: true, jobId: job.id };
   } catch (error) {
     console.warn('[Queue] Skipped (unavailable):', error.message);
