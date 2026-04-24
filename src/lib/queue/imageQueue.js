@@ -64,24 +64,29 @@ export async function addImageProcessingJob(data) {
 }
 
 export async function getJobStatus(jobId) {
-  const job = await imageGenerationQueue.getJob(jobId);
-  
-  if (!job) {
-    return { status: 'not_found' };
+  try {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Redis timeout')), 4000)
+    );
+    const job = await Promise.race([
+      imageGenerationQueue.getJob(jobId),
+      timeoutPromise,
+    ]);
+
+    if (!job) return { status: 'not_found' };
+
+    const state = await job.getState();
+    return {
+      status: state,
+      progress: job.progress(),
+      data: job.data,
+      result: job.returnvalue,
+      failedReason: job.failedReason,
+    };
+  } catch (err) {
+    console.warn('[Queue] getJobStatus failed:', err.message);
+    return { status: 'queue_unavailable', error: err.message };
   }
-
-  const state = await job.getState();
-  const progress = job.progress();
-  const data = job.data;
-  const result = job.returnvalue;
-
-  return {
-    status: state,
-    progress,
-    data,
-    result,
-    failedReason: job.failedReason,
-  };
 }
 
 export async function getQueueStats() {

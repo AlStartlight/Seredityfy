@@ -53,8 +53,11 @@ export async function GET(request, { params }) {
     };
 
     if (image.status === 'PENDING') {
-      const jobInfo = await getJobStatus(id);
-      response.jobStatus = jobInfo;
+      try {
+        response.jobStatus = await getJobStatus(id);
+      } catch {
+        response.jobStatus = { status: 'queue_unavailable' };
+      }
     }
 
     return NextResponse.json(response);
