@@ -24,7 +24,7 @@ export async function generateImageWithGemini(prompt, options = {}) {
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash-preview-image-generation',
       generationConfig,
       safetySettings,
     });
@@ -86,7 +86,7 @@ export async function generateImageMetadata(prompt, imageUrl) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     
     const metadataPrompt = `
       Analyze this AI-generated image and provide detailed metadata in JSON format.
