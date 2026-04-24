@@ -4,22 +4,28 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Vercel's Supabase integration injects vars with a project-name prefix
-// (e.g. seredityfy_POSTGRES_PRISMA_URL). Fall back through known names so
-// the app works regardless of which variable is present.
-const dbUrl =
+// Vercel Supabase integration injects vars with a project-name prefix.
+// Fall back through all known names.
+const rawUrl =
   process.env.DATABASE_URL ||
   process.env.seredityfy_POSTGRES_PRISMA_URL ||
   process.env.seredityfy_POSTGRES_URL ||
   process.env.POSTGRES_PRISMA_URL ||
   process.env.POSTGRES_URL;
 
+// Supabase pooler (pgbouncer) requires ?pgbouncer=true so Prisma
+// disables prepared statements — without it, code 42P05 is thrown.
+function withPgbouncer(url: string | undefined): string | undefined {
+  if (!url) return url;
+  if (url.includes('pgbouncer=true')) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}pgbouncer=true&connection_limit=1`;
+}
+
+const dbUrl = withPgbouncer(rawUrl);
+
 if (!dbUrl) {
-  console.error(
-    '[prisma] No database URL found. Checked: DATABASE_URL, ' +
-    'seredityfy_POSTGRES_PRISMA_URL, seredityfy_POSTGRES_URL, ' +
-    'POSTGRES_PRISMA_URL, POSTGRES_URL'
-  );
+  console.error('[prisma] No database URL found in any known env var.');
 }
 
 export const prisma =
