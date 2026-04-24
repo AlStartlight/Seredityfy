@@ -120,6 +120,48 @@ export async function analyzeImageWithGPT4V(imageUrl) {
   }
 }
 
+// DALL-E 3 supported sizes
+function getDalleSize(width, height) {
+  if (width > height) return '1792x1024';
+  if (height > width) return '1024x1792';
+  return '1024x1024';
+}
+
+export async function generateImageWithDALLE(prompt, options = {}) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+
+  const { width = 1024, height = 1024, quality = 'standard' } = options;
+  const size = getDalleSize(width, height);
+
+  try {
+    const response = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size,
+      quality,
+      response_format: 'b64_json',
+    });
+
+    const b64 = response.data[0]?.b64_json;
+    if (!b64) {
+      return { success: false, error: 'No image data returned from DALL-E' };
+    }
+
+    return {
+      success: true,
+      imageData: b64,
+      mimeType: 'image/png',
+      revisedPrompt: response.data[0]?.revised_prompt || prompt,
+    };
+  } catch (error) {
+    console.error('DALL-E generation error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function generateImageMetadataWithChatGPT(prompt, imageUrl) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');

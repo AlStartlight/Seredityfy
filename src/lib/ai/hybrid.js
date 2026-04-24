@@ -1,5 +1,5 @@
-import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V } from './chatgpt';
-import { generateImageWithGemini, generateImageMetadata as generateGeminiMetadata } from './gemini';
+import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V, generateImageWithDALLE } from './chatgpt';
+import { generateImageMetadata as generateGeminiMetadata } from './gemini';
 
 export async function generateHybridImage({
   prompt,
@@ -15,12 +15,13 @@ export async function generateHybridImage({
   strength = 0.7,
 }) {
   const startTime = Date.now();
-  
+
   try {
     let enhancedPrompt = prompt;
     let promptEmbedding = null;
     let imageAnalysis = null;
 
+    // Step 1: Enhance prompt with ChatGPT
     if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
       const enhancementResult = await enhancePromptWithChatGPT(prompt);
       if (enhancementResult.success) {
@@ -28,6 +29,7 @@ export async function generateHybridImage({
       }
     }
 
+    // Step 2: Analyse reference image if provided
     if (referenceImage) {
       const analysisResult = await analyzeImageWithGPT4V(referenceImage);
       if (analysisResult.success) {
@@ -36,9 +38,11 @@ export async function generateHybridImage({
       }
     }
 
-    const imageResult = await generateImageWithGemini(enhancedPrompt, {
-      referenceImage,
-      strength,
+    // Step 3: Generate image with DALL-E 3
+    const imageResult = await generateImageWithDALLE(enhancedPrompt, {
+      width,
+      height,
+      quality: model === 'cinematic-xl' ? 'hd' : 'standard',
     });
 
     if (!imageResult.success) {
@@ -49,14 +53,18 @@ export async function generateHybridImage({
       };
     }
 
+    // Use DALL-E's revised prompt if available
+    if (imageResult.revisedPrompt) {
+      enhancedPrompt = imageResult.revisedPrompt;
+    }
+
+    // Step 4: Generate prompt embedding
     if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
       const embeddingResult = await generatePromptEmbedding(enhancedPrompt);
       if (embeddingResult.success) {
         promptEmbedding = embeddingResult.embedding;
       }
     }
-
-    const metadata = await generateGeminiMetadata(prompt, imageResult.imageData);
 
     const processingTime = Date.now() - startTime;
 
@@ -65,9 +73,9 @@ export async function generateHybridImage({
       imageData: imageResult.imageData,
       mimeType: imageResult.mimeType,
       prompt: enhancedPrompt,
+      enhancedPrompt,
       originalPrompt: prompt,
       metadata: {
-        ...metadata,
         processingTime,
         generationMode,
         model,
@@ -79,6 +87,7 @@ export async function generateHybridImage({
         hasReferenceImage: !!referenceImage,
         referenceStrength: strength,
         imageAnalysis,
+        generator: 'dall-e-3',
       },
       promptEmbedding,
     };
@@ -94,7 +103,7 @@ export async function generateHybridImage({
 
 export async function generateSimple(prompt) {
   const enhancedResult = await enhancePromptWithChatGPT(prompt);
-  const imageResult = await generateImageWithGemini(
+  const imageResult = await generateImageWithDALLE(
     enhancedResult.success ? enhancedResult.enhancedPrompt : prompt
   );
 
@@ -108,7 +117,7 @@ export async function generateSimple(prompt) {
 }
 
 export { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V } from './chatgpt';
-export { generateImageWithGemini, generateImageMetadata } from './gemini';
+export { generateImageMetadata } from './gemini';
 
 export default {
   generateHybridImage,
