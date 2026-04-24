@@ -123,11 +123,7 @@ export const CREDIT_PACKAGES = [
 ];
 
 export function calculateCreditCost(width, height, model = 'seredityfy-v2') {
-  const basePixels = 512 * 512;
-  const actualPixels = width * height;
-  const pixelRatio = actualPixels / basePixels;
-  const modelMultiplier = model === 'seredityfy-v2' ? 1 : 1.5;
-  return Math.round(pixelRatio * modelMultiplier);
+  return 8;
 }
 
 export async function checkUserPermissions(userId, width = 1280, height = 720, model = 'seredityfy-v2') {

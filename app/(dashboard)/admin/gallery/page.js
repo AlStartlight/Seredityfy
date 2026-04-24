@@ -3,16 +3,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-const CATEGORIES = [
-  { id: 'all', name: 'All', icon: 'grid_view' },
-  { id: 'portrait', name: 'Portrait', icon: 'face' },
-  { id: 'landscape', name: 'Landscape', icon: 'landscape' },
-  { id: 'abstract', name: 'Abstract', icon: 'bubble_chart' },
-  { id: 'sci-fi', name: 'Sci-Fi', icon: 'rocket_launch' },
-  { id: 'fantasy', name: 'Fantasy', icon: 'auto_awesome' },
-  { id: 'architecture', name: 'Architecture', icon: 'architecture' },
-  { id: 'nature', name: 'Nature', icon: 'park' },
-];
+const CATEGORY_ICONS = {
+  manhwa: 'auto_stories',
+  anime: 'anime',
+  realistic: 'person',
+  portrait: 'face',
+  fantasy: 'auto_awesome',
+  'sci-fi': 'rocket_launch',
+  illustration: 'brush',
+  landscape: 'landscape',
+  nature: 'park',
+  architecture: 'architecture',
+  abstract: 'bubble_chart',
+};
 
 const SORT_OPTIONS = [
   { id: 'createdAt', name: 'Latest' },
@@ -22,13 +25,45 @@ const SORT_OPTIONS = [
 
 export default function GalleryPage() {
   const [images, setImages] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSort, setSelectedSort] = useState('createdAt');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchImages = useCallback(async (page = 1) => {
+  const fetchCategories = useCallback(async () => {
+    setLoadingCategories(true);
+    try {
+      const response = await fetch('/api/community?limit=100&page=1');
+      const data = await response.json();
+      
+      if (data.images) {
+        const categories = new Set();
+        data.images.forEach(img => {
+          if (img.metadata?.category) {
+            categories.add(img.metadata.category.toLowerCase());
+          }
+        });
+        
+        const cats = Array.from(categories).map(cat => ({
+          id: cat,
+          name: cat.charAt(0).toUpperCase() + cat.slice(1),
+          icon: CATEGORY_ICONS[cat] || 'image',
+        }));
+        
+        cats.sort((a, b) => a.name.localeCompare(b.name));
+        setAvailableCategories(cats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  }, []);
+
+  const fetchImages = useCallback(async (page = 1, category = selectedCategory) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -37,8 +72,8 @@ export default function GalleryPage() {
         type: 'community',
       });
 
-      if (selectedCategory !== 'all') {
-        params.append('category', selectedCategory);
+      if (category !== 'all') {
+        params.append('category', category);
       }
 
       if (selectedSort) {
@@ -60,8 +95,17 @@ export default function GalleryPage() {
   }, [selectedCategory, selectedSort, images]);
 
   useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
     fetchImages(1);
   }, [selectedCategory, selectedSort]);
+
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setImages([]);
+  };
 
   const loadMore = () => {
     if (pagination.page < pagination.totalPages) {
@@ -110,12 +154,16 @@ export default function GalleryPage() {
 
         <div className="h-8 w-px bg-outline-variant/20 hidden md:block"></div>
 
-        {/* Category Filter */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Category Filter Dropdown */}
+        <div className="relative">
           <button className="flex items-center gap-2 px-4 py-2 bg-[#1f0438]/70 backdrop-blur-2xl border border-outline-variant/20 rounded-xl text-on-surface-variant font-label text-xs hover:bg-white/5 transition-all">
             <span className="material-symbols-outlined text-sm">category</span>
             <span className="hidden sm:inline">Category:</span>
-            <span className="text-primary font-bold">{CATEGORIES.find(c => c.id === selectedCategory)?.name || 'All'}</span>
+            <span className="text-primary font-bold">
+              {selectedCategory === 'all' 
+                ? 'All' 
+                : availableCategories.find(c => c.id === selectedCategory)?.name || selectedCategory}
+            </span>
             <span className="material-symbols-outlined text-sm">expand_more</span>
           </button>
         </div>
@@ -145,23 +193,36 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      {/* Category Pills */}
-      <section className="flex gap-2 mb-8 overflow-x-auto pb-2">
-        {CATEGORIES.map((cat) => (
+      {/* Category Pills - Only show categories with images */}
+      {availableCategories.length > 0 && (
+        <section className="flex gap-2 mb-8 overflow-x-auto pb-2">
           <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
+            onClick={() => handleCategoryChange('all')}
             className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-              selectedCategory === cat.id
+              selectedCategory === 'all'
                 ? 'bg-primary text-on-primary'
                 : 'bg-surface-container-low text-purple-200/60 hover:bg-white/10'
             }`}
           >
-            <span className="material-symbols-outlined text-sm">{cat.icon}</span>
-            <span className="text-xs font-label">{cat.name}</span>
+            <span className="material-symbols-outlined text-sm">grid_view</span>
+            <span className="text-xs font-label">All</span>
           </button>
-        ))}
-      </section>
+          {availableCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategoryChange(cat.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
+                selectedCategory === cat.id
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-purple-200/60 hover:bg-white/10'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">{cat.icon}</span>
+              <span className="text-xs font-label">{cat.name}</span>
+            </button>
+          ))}
+        </section>
+      )}
 
       {/* Masonry Gallery Grid */}
       <section className="columns-2 md:columns-4 lg:columns-5 gap-4">
@@ -223,6 +284,10 @@ function GalleryCard({ image }) {
     window.location.href = `/admin/generate?prompt=${encodeURIComponent(image.prompt)}`;
   };
 
+  const categoryName = image.metadata?.category 
+    ? image.metadata.category.charAt(0).toUpperCase() + image.metadata.category.slice(1)
+    : image.model;
+
   return (
     <Link
       href={`/admin/gallery/${image.id}`}
@@ -237,7 +302,7 @@ function GalleryCard({ image }) {
       <div className="absolute inset-0 bg-gradient-to-t from-[#1f0438] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
         <div className="mb-4">
           <p className="text-xs font-label text-secondary font-bold mb-1 uppercase tracking-tighter line-clamp-1">
-            {image.metadata?.category || image.model}
+            {categoryName}
           </p>
           <p className="text-[10px] font-body text-white/70 line-clamp-2 italic">{image.prompt}</p>
         </div>

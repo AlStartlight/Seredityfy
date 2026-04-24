@@ -39,7 +39,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start && worker",
     "lint": "next lint",
     "worker": "node scripts/start-worker.js",
     "cloudinary:setup": "node scripts/setup-cloudinary.js",

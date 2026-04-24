@@ -1,0 +1,34 @@
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+# Install dependencies
+FROM base AS deps
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Build stage
+FROM base AS builder
+COPY . .
+RUN npm ci && npx prisma generate
+
+# Production stage
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 worker
+
+COPY --from=deps --chown=worker:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=worker:nodejs /app ./app
+COPY --from=builder --chown=worker:nodejs /prisma ./prisma
+COPY --from=builder --chown=worker:nodejs /scripts ./scripts
+COPY --from=builder --chown=worker:nodejs /src ./src
+
+USER worker
+
+EXPOSE 3001
+
+CMD ["node", "scripts/start-worker.js"]

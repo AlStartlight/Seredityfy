@@ -59,7 +59,7 @@ export default function Sidebar({ active = 'Generator' }) {
           className="w-full bg-primary text-on-primary font-label font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-primary/20"
         >
           <span className="material-symbols-outlined text-[20px]">add</span>
-          Create New Image
+          New Imagination
         </Link>
         <div className="space-y-1">
           <Link href="#" className="flex items-center gap-3 px-4 py-2 rounded-lg text-purple-300/50 hover:text-purple-100 font-label text-sm transition-all">

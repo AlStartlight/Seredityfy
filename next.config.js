@@ -1,9 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  output: 'standalone',
   images: {
-    domains: [],
-    remotePatterns: [],
+    domains: ['res.cloudinary.com', 'localhost'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
+      },
+    ],
   },
   // Turbopack is the default bundler in Next.js 16.
   // SVGs are handled as static assets (URL strings) by default — no extra rule needed.

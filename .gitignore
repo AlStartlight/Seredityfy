@@ -24,6 +24,12 @@ yarn-error.log*
 
 *.env
 .env.*
+!.env.example
+
+# Docker
+docker-compose.override.yml
+nginx/ssl/
+nginx/logs/
 /stitch
 .next
 .claude
