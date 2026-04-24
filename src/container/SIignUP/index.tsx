@@ -5,31 +5,43 @@ import { Logo } from '@/src/assets/import';
 
 const EMAILJS_API = 'https://api.emailjs.com/api/v1.0/email/send';
 
+interface EmailjsConfig {
+  serviceId:  string;
+  templateId: string;
+  publicKey:  string;
+}
+
 /**
- * Send the verification email from the browser using EmailJS public key.
- * The browser sets the correct Origin header automatically — no private key needed.
+ * Send the verification email directly from the browser via EmailJS.
+ * The browser Origin header satisfies EmailJS allowed-origins validation —
+ * no private key required. Config is supplied by the server response so
+ * NEXT_PUBLIC_* build-time vars are not needed.
  */
 async function sendEmailFromBrowser({
   email,
   name,
   token,
   siteUrl,
+  emailjsConfig,
 }: {
   email: string;
   name: string;
   token: string;
   siteUrl: string;
+  emailjsConfig?: EmailjsConfig;
 }) {
-  const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
-  const publicKey  = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+  const serviceId  = emailjsConfig?.serviceId?.trim();
+  const templateId = emailjsConfig?.templateId?.trim();
+  const publicKey  = emailjsConfig?.publicKey?.trim();
 
   if (!serviceId || !templateId || !publicKey) {
-    console.warn('[email] NEXT_PUBLIC_EMAILJS_* env vars not set — cannot send from browser');
+    console.error('[email] EmailJS config missing from server response', { serviceId, templateId, publicKey });
     return false;
   }
 
-  const verifyLink = `${siteUrl}/api/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
+  const origin     = typeof window !== 'undefined' ? window.location.origin : siteUrl;
+  const base       = siteUrl || origin;
+  const verifyLink = `${base}/api/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
 
   try {
     const res = await fetch(EMAILJS_API, {
@@ -47,8 +59,14 @@ async function sendEmailFromBrowser({
         },
       }),
     });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[email] EmailJS browser send ${res.status}:`, body);
+    }
     return res.ok;
-  } catch {
+  } catch (err) {
+    console.error('[email] EmailJS browser fetch failed:', err);
     return false;
   }
 }
@@ -79,12 +97,13 @@ const SignUP = () => {
       const data = await res.json();
 
       if (data.clientEmailNeeded) {
-        // Server failed → try from browser
+        // Server failed → try from browser using config returned by server
         const sent = await sendEmailFromBrowser({
           email,
           name,
-          token:   data.verifyToken,
-          siteUrl: data.siteUrl || window.location.origin,
+          token:         data.verifyToken,
+          siteUrl:       data.siteUrl || window.location.origin,
+          emailjsConfig: data.emailjsConfig,
         });
         setResendStatus(sent ? 'sent' : 'error');
         setResendMessage(sent ? 'Verification email resent!' : 'Failed to resend. Check your spam or contact support.');
@@ -145,8 +164,9 @@ const SignUP = () => {
         const sent = await sendEmailFromBrowser({
           email,
           name,
-          token:   data.verifyToken,
-          siteUrl: data.siteUrl || window.location.origin,
+          token:         data.verifyToken,
+          siteUrl:       data.siteUrl || window.location.origin,
+          emailjsConfig: data.emailjsConfig,
         });
         setEmailSent(sent);
         setRegistered(true);

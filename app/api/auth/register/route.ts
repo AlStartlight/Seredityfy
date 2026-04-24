@@ -76,12 +76,18 @@ export async function POST(request: Request) {
       {
         message: "Account created. Please check your email for the verification link.",
         emailSent: emailResult.sent,
-        // When server-side send fails, pass data back so the browser can send
-        // the email via EmailJS directly (client-side requires no private key).
+        // When server-side send fails, pass everything the browser needs to
+        // call EmailJS directly. The browser Origin header satisfies EmailJS
+        // allowed-origins check — no private key required.
         ...(emailResult.clientFallback && {
           clientEmailNeeded: true,
           verifyToken: token,
           siteUrl,
+          emailjsConfig: {
+            serviceId:  process.env.EMAILJS_SERVICE_ID  ?? '',
+            templateId: process.env.EMAILJS_TEMPLATE_ID ?? '',
+            publicKey:  process.env.EMAILJS_USER_ID     ?? '',
+          },
         }),
       },
       { status: 201 }

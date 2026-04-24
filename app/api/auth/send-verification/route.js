@@ -43,13 +43,20 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Verification email sent' });
     }
 
-    // Server-side send failed — let the browser retry via EmailJS directly
+    // Server-side send failed — let the browser retry via EmailJS directly.
+    // Return the public EmailJS config so the browser can call the API
+    // without relying on NEXT_PUBLIC_* build-time env vars.
     if (result.clientFallback) {
       return NextResponse.json({
         message: 'Please send via browser',
         clientEmailNeeded: true,
         verifyToken: token,
         siteUrl,
+        emailjsConfig: {
+          serviceId:  process.env.EMAILJS_SERVICE_ID  ?? '',
+          templateId: process.env.EMAILJS_TEMPLATE_ID ?? '',
+          publicKey:  process.env.EMAILJS_USER_ID     ?? '',
+        },
       });
     }
 
