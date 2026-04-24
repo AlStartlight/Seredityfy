@@ -6,7 +6,7 @@ function getRedisConfig() {
     const host = restUrl.replace(/^https?:\/\//, '');
     return {
       host,
-      port: 6380,
+      port: 6379,
       password: restToken,
       tls: { rejectUnauthorized: false },  // required for Upstash TLS
       connectTimeout: 5000,
