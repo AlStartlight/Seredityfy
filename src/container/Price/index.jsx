@@ -1,130 +1,229 @@
-import React from 'react'
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+
+const PLANS = [
+  {
+    id: 'FREE',
+    name: 'Free',
+    price: '$0',
+    period: '/week',
+    credits: 40,
+    description: 'Perfect for trying out the platform',
+    accent: 'from-gray-400 to-gray-500',
+    ring: 'hover:ring-gray-400/40',
+    badge: null,
+    features: [
+      { label: '40 credits / week', ok: true },
+      { label: 'Standard resolution (720p)', ok: true },
+      { label: 'Community gallery access', ok: true },
+      { label: 'Basic models', ok: true },
+      { label: 'No watermarks', ok: false },
+      { label: 'Commercial license', ok: false },
+    ],
+    cta: 'Get Started Free',
+    ctaStyle: 'bg-white/10 hover:bg-white/20 text-white',
+    href: '/register',
+  },
+  {
+    id: 'STARTER',
+    name: 'Starter',
+    price: '$9',
+    period: '/week',
+    credits: 200,
+    description: 'For casual creators',
+    accent: 'from-emerald-400 to-green-500',
+    ring: 'hover:ring-emerald-400/40',
+    badge: null,
+    features: [
+      { label: '200 credits / week', ok: true },
+      { label: 'HD resolution (1024p)', ok: true },
+      { label: 'Share to community', ok: true },
+      { label: 'No watermarks', ok: true },
+      { label: 'All basic models', ok: true },
+      { label: 'Commercial license', ok: false },
+    ],
+    cta: 'Get Starter',
+    ctaStyle: 'bg-emerald-500 hover:bg-emerald-400 text-white',
+    href: '/register',
+  },
+  {
+    id: 'PRO',
+    name: 'Pro',
+    price: '$29',
+    period: '/week',
+    credits: 500,
+    description: 'For serious artists',
+    accent: 'from-violet-500 to-fuchsia-500',
+    ring: 'ring-2 ring-violet-500/60',
+    badge: 'Most Popular',
+    features: [
+      { label: '500 credits / week', ok: true },
+      { label: 'Full HD resolution (1280p)', ok: true },
+      { label: 'Batch generation', ok: true },
+      { label: 'Priority support', ok: true },
+      { label: 'Commercial license', ok: true },
+      { label: 'Advanced models', ok: true },
+    ],
+    cta: 'Go Pro',
+    ctaStyle: 'bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:brightness-110 text-white shadow-lg shadow-violet-500/30',
+    href: '/register',
+  },
+  {
+    id: 'ENTERPRISE',
+    name: 'Enterprise',
+    price: '$99',
+    period: '/month',
+    credits: 'Unlimited',
+    description: 'For teams & businesses',
+    accent: 'from-purple-500 to-pink-500',
+    ring: 'hover:ring-purple-400/40',
+    badge: null,
+    features: [
+      { label: 'Unlimited credits', ok: true },
+      { label: 'Full HD resolution (1280p)', ok: true },
+      { label: 'Dedicated support', ok: true },
+      { label: 'Multi-user access', ok: true },
+      { label: 'Custom integrations', ok: true },
+      { label: 'API access', ok: true },
+    ],
+    cta: 'Contact Sales',
+    ctaStyle: 'bg-white/10 hover:bg-white/20 text-white border border-white/20',
+    href: '/contact',
+  },
+];
+
+function CheckIcon({ ok }) {
+  return (
+    <svg
+      className={`w-4 h-4 shrink-0 ${ok ? 'text-emerald-400' : 'text-white/20'}`}
+      fill="currentColor"
+      viewBox="0 0 20 20"
+    >
+      {ok ? (
+        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+      ) : (
+        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+      )}
+    </svg>
+  );
+}
 
 export const PriceApp = () => {
+  const [billingCycle, setBillingCycle] = useState('weekly');
+
   return (
-    <section className="bg-gradient-to-r  from-slate-950 via-indigo-950 to-blue-950">
-  <div className="py-8 px-4 sm:px-6 lg:px-8 mx-auto max-w-7xl lg:py-16">
-      <div className="mx-auto max-w-screen-md text-center mb-8 lg:mb-12">
-          <h2 className="mb-4 text-4xl tracking-tight font-extrabold text-white">Designed for business teams like yours</h2>
-          <p className="mb-5 font-light text-gray-500 sm:text-xl dark:text-gray-400">Here at Seredityfy Empowering Connections, Enhancing Intelligence - Uniting Platforms with AI Speed and Responsiveness can unlock long-term value and drive economic growth.</p>
+    <section className="py-16 px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="max-w-3xl mx-auto text-center mb-14">
+        <span className="inline-block px-4 py-1.5 mb-4 rounded-full text-xs font-bold uppercase tracking-widest bg-violet-500/15 text-violet-300 border border-violet-500/20">
+          Pricing
+        </span>
+        <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-5">
+          Simple,{' '}
+          <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            transparent
+          </span>{' '}
+          pricing
+        </h2>
+        <p className="text-gray-400 text-lg leading-relaxed">
+          Start free and scale as you create. Every plan includes access to
+          the community gallery and our AI generation engine.
+        </p>
+
+        {/* Billing toggle */}
+        <div className="mt-8 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-full p-1">
+          <button
+            onClick={() => setBillingCycle('weekly')}
+            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+              billingCycle === 'weekly'
+                ? 'bg-violet-600 text-white shadow'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Weekly
+          </button>
+          <button
+            onClick={() => setBillingCycle('monthly')}
+            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+              billingCycle === 'monthly'
+                ? 'bg-violet-600 text-white shadow'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Monthly
+            <span className="ml-2 text-xs text-emerald-400 font-bold">-20%</span>
+          </button>
+        </div>
       </div>
-      <div className="space-y-8 lg:grid lg:grid-cols-3 sm:gap-6 xl:gap-10 lg:space-y-0">
-          {/* <!-- Pricing Card --> */}
-          <div className="flex flex-col p-6 mx-auto max-w-lg text-center text-gray-900 bg-slate-200 rounded-lg border border-gray-100 shadow dark:border-gray-600 xl:p-8 dark:bg-gray-800 dark:text-white">
-              <h3 className="mb-4 text-2xl font-semibold">Starter</h3>
-              <p className="font-light text-gray-500 sm:text-lg dark:text-gray-400">Best option for personal use & for your next project.</p>
-              <div className="flex justify-center items-baseline my-8">
-                  <span className="mr-2 text-5xl font-extrabold">$129</span>
-                  <span className="text-gray-500 dark:text-gray-400">/month</span>
+
+      {/* Cards */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {PLANS.map((plan) => (
+          <div
+            key={plan.id}
+            className={`relative flex flex-col rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 overflow-hidden transition-all duration-300 ${plan.ring}`}
+          >
+            {/* Top accent bar */}
+            <div className={`h-1 w-full bg-gradient-to-r ${plan.accent}`} />
+
+            {/* Badge */}
+            {plan.badge && (
+              <div className="absolute top-4 right-4">
+                <span className="px-3 py-1 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg shadow-violet-500/30">
+                  {plan.badge}
+                </span>
               </div>
-              {/* <!-- List --> */}
-              <ul role="list" className="mb-8 space-y-4 text-left">
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Individual configuration</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>No setup, or hidden fees</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Team size: <span className="font-semibold">1 developer</span></span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Premium support: <span className="font-semibold">6 months</span></span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Free updates: <span className="font-semibold">6 months</span></span>
-                  </li>
-              </ul>
-              <a href="#" className="text-white bg-gradient-to-tr from-slate-600  from-0% via-slate-800 to-slate-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:text-white  dark:focus:ring-primary-900">Get started</a>
-          </div>
-          {/* <!-- Pricing Card --> */}
-          <div className="flex bg-green-300 flex-col p-6 mx-auto max-w-lg text-center text-gray-900  rounded-lg border border-gray-100 shadow dark:border-gray-600 xl:p-8 dark:bg-green-950 dark:text-white">
-              <h3 className="mb-4 text-2xl font-semibold">Company</h3>
-              <p className="font-light text-gray-500 sm:text-lg dark:text-gray-400">Relevant for multiple users, extended & premium support.</p>
-              <div className="flex justify-center items-baseline my-8">
-                  <span className="mr-2 text-5xl font-extrabold">$599</span>
-                  <span className="text-gray-500 dark:text-gray-400" >/month</span>
+            )}
+
+            <div className="flex flex-col flex-1 p-6">
+              {/* Plan name & description */}
+              <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
+              <p className="text-sm text-gray-400 mb-6">{plan.description}</p>
+
+              {/* Price */}
+              <div className="mb-6">
+                <span className="text-4xl font-extrabold text-white">{plan.price}</span>
+                <span className="text-gray-400 text-sm ml-1">{plan.period}</span>
               </div>
-              {/* <!-- List --> */}
-              <ul role="list" className="mb-8 space-y-4 text-left">
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Individual configuration</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>No setup, or hidden fees</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Team size: <span className="font-semibold">10 developers</span></span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Premium support: <span className="font-semibold">24 months</span></span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Free updates: <span className="font-semibold">24 months</span></span>
-                  </li>
-              </ul>
-              <a href="#" className="text-white bg-gradient-to-tr from-green-600  from-0% via-green-800 to-green-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:text-white  dark:focus:ring-primary-900">Get started</a>
-          </div>
-          {/* <!-- Pricing Card --> */}
-          <div className="flex flex-col p-6 mx-auto max-w-lg text-center text-gray-900 bg-white rounded-lg border border-gray-100 shadow dark:border-gray-600 xl:p-8 dark:bg-gray-800 dark:text-white">
-              <h3 className="mb-4 text-2xl font-semibold">Enterprise</h3>
-              <p className="font-light text-gray-500 sm:text-lg dark:text-gray-400">Best for large scale uses and extended redistribution rights.</p>
-              <div className="flex justify-center items-baseline my-8">
-                  <span className="mr-2 text-5xl font-extrabold">$1499</span>
-                  <span className="text-gray-500 dark:text-gray-400">/month</span>
+
+              {/* Credits callout */}
+              <div className={`mb-6 px-4 py-2 rounded-xl bg-gradient-to-r ${plan.accent} bg-opacity-10`}
+                style={{ background: 'rgba(255,255,255,0.05)' }}
+              >
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Credits</span>
+                <p className="text-lg font-extrabold text-white">{plan.credits}<span className="text-sm font-normal text-gray-400"> / week</span></p>
               </div>
-              {/* <!-- List --> */}
-              <ul role="list" className="mb-8 space-y-4 text-left">
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Individual configuration</span>
+
+              {/* Features */}
+              <ul className="space-y-3 mb-8 flex-1">
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2.5">
+                    <CheckIcon ok={f.ok} />
+                    <span className={`text-sm ${f.ok ? 'text-gray-300' : 'text-gray-600'}`}>{f.label}</span>
                   </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>No setup, or hidden fees</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Team size: <span className="font-semibold">100+ developers</span></span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Premium support: <span className="font-semibold">36 months</span></span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                      {/* <!-- Icon --> */}
-                      <svg className="flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                      <span>Free updates: <span className="font-semibold">36 months</span></span>
-                  </li>
+                ))}
               </ul>
-              <a href="#" className="text-white bg-gradient-to-tr from-slate-600  from-0% via-slate-800 to-slate-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:text-white  dark:focus:ring-primary-900">Get started</a>
+
+              {/* CTA */}
+              <Link href={plan.href}>
+                <button
+                  className={`w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-95 ${plan.ctaStyle}`}
+                >
+                  {plan.cta}
+                </button>
+              </Link>
+            </div>
           </div>
+        ))}
       </div>
-  </div>
-</section>
-  )
-}
+
+      {/* Bottom note */}
+      <p className="text-center text-gray-500 text-sm mt-12">
+        All plans include a{' '}
+        <span className="text-gray-300 font-medium">7-day free trial</span>. No credit card required to start.
+      </p>
+    </section>
+  );
+};
