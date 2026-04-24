@@ -38,7 +38,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-turbo",
+    "build": "next build",
     "start": "next start && worker",
     "lint": "next lint",
     "worker": "node scripts/start-worker.js",
