@@ -18,6 +18,9 @@ const nextConfig = {
       },
     ],
   },
+  // Empty turbopack config silences the "webpack config but no turbopack config" error.
+  // Turbopack handles SVGs as static assets by default — no rules needed here.
+  turbopack: {},
   // Retained for explicit `next dev --webpack` / `next build --webpack` only.
   webpack(config) {
     config.module.rules.push({
