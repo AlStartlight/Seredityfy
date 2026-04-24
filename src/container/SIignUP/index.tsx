@@ -9,14 +9,29 @@ const SignUP = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+
+  const handleResend = async () => {
+    setResendMessage('');
+    try {
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setResendMessage(res.ok ? 'Verification email resent!' : (data.error || 'Failed to resend'));
+    } catch {
+      setResendMessage('An error occurred');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -44,23 +59,7 @@ const SignUP = () => {
         return;
       }
 
-      setSuccess('Account created! Redirecting to login...');
-      
-      const signInResult = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (signInResult?.ok) {
-        setTimeout(() => {
-          window.location.href = '/admin';
-        }, 1500);
-      } else {
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
-      }
+      setRegistered(true);
     } catch (err) {
       setError('An error occurred. Please try again.');
     } finally {
@@ -78,6 +77,50 @@ const SignUP = () => {
     }
   };
 
+  if (registered) {
+    return (
+      <section className="bg-gradient-to-br bg-gradient-75 from-slate-950 via-indigo-950 to-blue-950">
+        <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+          <a href="/" className="flex items-center mb-6 text-2xl font-semibold text-gray-300 dark:text-white">
+            <img className="w-8 h-8 mr-2" src={Logo} alt="logo"/>
+            Serendityfy
+          </a>
+          <div className="w-full rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 bg-gray-800 dark:border-gray-700">
+            <div className="p-8 space-y-6 sm:p-10 text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-900/30 border border-emerald-700/40 flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold text-gray-100">Check your email</h1>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                We sent a verification link to <strong className="text-gray-300">{email}</strong>.
+                Click the link to activate your account.
+              </p>
+              <div className="pt-2 space-y-3">
+                <a
+                  href="/login"
+                  className="block w-full py-2.5 rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 text-center"
+                >
+                  Go to Login
+                </a>
+                <p className="text-xs text-gray-500">
+                  Didn't get the email? Check your spam folder or{' '}
+                  <button onClick={handleResend} className="text-primary-500 hover:underline bg-transparent border-none p-0 cursor-pointer inline font-inherit text-xs">
+                    resend verification
+                  </button>
+                  {resendMessage && (
+                    <span className="block mt-1 text-emerald-400">{resendMessage}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="bg-gradient-to-br bg-gradient-75 from-slate-950 via-indigo-950 to-blue-950">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -94,12 +137,6 @@ const SignUP = () => {
             {error && (
               <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/20 rounded-lg border border-red-800">
                 {error}
-              </div>
-            )}
-            
-            {success && (
-              <div className="p-3 mb-4 text-sm text-green-400 bg-green-900/20 rounded-lg border border-green-800">
-                {success}
               </div>
             )}
             

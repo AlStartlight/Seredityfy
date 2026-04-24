@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import prisma from "@/src/lib/prisma";
+import { validateEmail } from "@/src/lib/email/validate";
+import { sendVerificationEmail } from "@/src/lib/email/send";
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +20,14 @@ export async function POST(request: Request) {
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
+        { status: 400 }
+      );
+    }
+
+    const validation = await validateEmail(email);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.reason },
         { status: 400 }
       );
     }
@@ -42,8 +53,28 @@ export async function POST(request: Request) {
       },
     });
 
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires,
+      },
+    });
+
+    const emailResult = await sendVerificationEmail({
+      email,
+      name: name || undefined,
+      token,
+    });
+
     return NextResponse.json(
-      { message: "User created successfully", userId: user.id },
+      {
+        message: "Account created. Please check your email for the verification link.",
+        emailSent: emailResult.sent,
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -51,8 +82,6 @@ export async function POST(request: Request) {
     const code = (error as any)?.code ?? null;
     console.error("[register] error:", code, message);
 
-    // Always expose detail so Vercel Function Logs + client can show real cause.
-    // Remove the `detail` field once production is stable.
     return NextResponse.json(
       { error: "Failed to create user", detail: message, code },
       { status: 500 }

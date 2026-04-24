@@ -9,10 +9,15 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsVerification(false);
+    setResent(false);
     setIsLoading(true);
 
     try {
@@ -23,7 +28,14 @@ const Login = () => {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        const check = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(email)}`);
+        const data = await check.json();
+        if (data.needsVerification) {
+          setNeedsVerification(true);
+          setError('Please verify your email before signing in. Check your inbox for the verification link.');
+        } else {
+          setError('Invalid email or password');
+        }
       } else {
         window.location.href = '/admin';
       }
@@ -31,6 +43,29 @@ const Login = () => {
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    setResent(false);
+    try {
+      const res = await fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResent(true);
+        setError('');
+      } else {
+        setError(data.error || 'Failed to resend verification email');
+      }
+    } catch {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -60,6 +95,24 @@ const Login = () => {
             {error && (
               <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/20 rounded-lg border border-red-800">
                 {error}
+              </div>
+            )}
+
+            {resent && (
+              <div className="p-3 mb-4 text-sm text-green-400 bg-green-900/20 rounded-lg border border-green-800">
+                Verification email resent! Please check your inbox.
+              </div>
+            )}
+
+            {needsVerification && (
+              <div className="mb-4">
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="w-full py-2.5 text-sm font-medium text-purple-300 bg-purple-900/20 border border-purple-700/40 rounded-lg hover:bg-purple-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resending ? 'Sending...' : 'Resend verification email'}
+                </button>
               </div>
             )}
 
