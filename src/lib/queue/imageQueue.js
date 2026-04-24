@@ -1,16 +1,11 @@
 import Queue from 'bull';
+import { redisConfig } from '../redis.js';
 
-const redisConfig = {
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    ...(process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } : {}),
-  },
-};
+const bullConfig = { redis: redisConfig };
 
-export const imageGenerationQueue = new Queue('image-generation', redisConfig);
+export const imageGenerationQueue = new Queue('image-generation', bullConfig);
 
-export const imageProcessingQueue = new Queue('image-processing', redisConfig);
+export const imageProcessingQueue = new Queue('image-processing', bullConfig);
 
 export async function addImageGenerationJob(data) {
   const job = await imageGenerationQueue.add(
