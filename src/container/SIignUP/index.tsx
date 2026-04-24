@@ -39,30 +39,55 @@ async function sendEmailFromBrowser({
     return false;
   }
 
+  const cleanEmail = email.trim();
   const origin     = typeof window !== 'undefined' ? window.location.origin : siteUrl;
   const base       = siteUrl || origin;
-  const verifyLink = `${base}/api/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
+  const verifyLink = `${base}/api/auth/verify-email?token=${token}&email=${encodeURIComponent(cleanEmail)}`;
+
+  if (!cleanEmail) {
+    console.error('[email] sendEmailFromBrowser called with empty email');
+    return false;
+  }
+
+  // Pass the recipient email under every variable name commonly used in
+  // EmailJS templates so the send works regardless of how the template's
+  // "To Email" field is configured ({{to_email}}, {{email}}, {{to}}, etc.).
+  const templateParams = {
+    to_email:    cleanEmail,
+    email:       cleanEmail,
+    to:          cleanEmail,
+    user_email:  cleanEmail,
+    reply_to:    cleanEmail,
+    to_name:     (name || 'there').trim(),
+    from_name:   'Seredityfy',
+    verify_link: verifyLink,
+    site_name:   'Seredityfy',
+    message:     `Click the link to verify your Seredityfy account: ${verifyLink}`,
+  };
+
+  console.log('[email] Sending via browser to:', cleanEmail, '| service:', serviceId);
 
   try {
     const res = await fetch(EMAILJS_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        service_id:  serviceId,
-        template_id: templateId,
-        user_id:     publicKey,
-        template_params: {
-          to_email:    email,
-          to_name:     name || 'there',
-          verify_link: verifyLink,
-          site_name:   'Seredityfy',
-        },
+        service_id:      serviceId,
+        template_id:     templateId,
+        user_id:         publicKey,
+        template_params: templateParams,
       }),
     });
 
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[email] EmailJS browser send ${res.status}:`, body);
+      console.error(`[email] EmailJS ${res.status}: ${body}`);
+      if (res.status === 422) {
+        console.error(
+          '[email] 422 fix: open EmailJS dashboard → Templates → template_5mt2cl8' +
+          ' → set "To Email" field to {{to_email}} and save.'
+        );
+      }
     }
     return res.ok;
   } catch (err) {

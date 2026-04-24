@@ -43,9 +43,15 @@ export async function sendVerificationEmail({ email, name, token }) {
         accessToken: privateKey,
         template_params: {
           to_email:    email,
+          email:       email,
+          to:          email,
+          user_email:  email,
+          reply_to:    email,
           to_name:     name || 'there',
+          from_name:   'Seredityfy',
           verify_link: verifyLink,
           site_name:   'Seredityfy',
+          message:     `Click to verify your Seredityfy account: ${verifyLink}`,
         },
       }),
     });
