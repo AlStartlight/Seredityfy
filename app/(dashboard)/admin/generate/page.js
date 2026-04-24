@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useGenerate } from '@/src/hooks/useGenerate';
 import Image from 'next/image';
@@ -28,7 +28,7 @@ const RANDOM_PROMPTS = [
   'Steampunk airship fleet sailing through clouds, brass and copper machinery, Victorian aesthetic',
 ];
 
-export default function GeneratorPage() {
+function GeneratorContent() {
   const searchParams = useSearchParams();
   const [prompt, setPrompt] = useState(() => searchParams.get('prompt') || '');
   const [negativePrompt, setNegativePrompt] = useState('');
@@ -751,5 +751,13 @@ fetch('/api/upload/reference', {
         </aside>
       </div>
     </main>
+  );
+}
+
+export default function GeneratorPage() {
+  return (
+    <Suspense>
+      <GeneratorContent />
+    </Suspense>
   );
 }
