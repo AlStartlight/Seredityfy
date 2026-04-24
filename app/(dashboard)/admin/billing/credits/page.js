@@ -9,12 +9,11 @@ const CREDIT_PLANS = [
   {
     id: 'FREE',
     name: 'Free',
-    price: '$0',
-    period: '/week',
-    credits: 40,
+    creditsWeekly: 40,
+    creditsMonthly: 160,
     description: 'Perfect for trying out the platform',
     features: [
-      { label: '40 credits/week', included: true },
+      { label: '40 credits/week · 160 credits/month', included: true },
       { label: 'Standard resolution (720p)', included: true },
       { label: 'Community gallery access', included: true },
       { label: 'Basic models', included: true },
@@ -24,14 +23,13 @@ const CREDIT_PLANS = [
   {
     id: 'STARTER',
     name: 'Starter',
-    price: '$9',
-    period: '/week',
-    credits: 200,
+    creditsWeekly: 200,
+    creditsMonthly: 800,
     description: 'For casual creators',
     features: [
-      { label: '200 credits/week', included: true },
+      { label: '200 credits/week · 800 credits/month', included: true },
       { label: 'HD resolution (1024p)', included: true },
-      { label: 'Share to community', included: true, icon: 'bolt' },
+      { label: 'Share to community', included: true },
       { label: 'No watermarks', included: true },
       { label: 'All basic models', included: true },
     ],
@@ -40,13 +38,12 @@ const CREDIT_PLANS = [
   {
     id: 'PRO',
     name: 'Pro',
-    price: '$29',
-    period: '/week',
-    credits: 500,
+    creditsWeekly: 500,
+    creditsMonthly: 2000,
     description: 'For serious artists',
     badge: 'Most Popular',
     features: [
-      { label: '500 credits/week', included: true, icon: 'bolt' },
+      { label: '500 credits/week · 2000 credits/month', included: true },
       { label: 'Full HD (1280p)', included: true },
       { label: 'Batch generation', included: true },
       { label: 'Priority support', included: true },
@@ -58,9 +55,8 @@ const CREDIT_PLANS = [
   {
     id: 'ENTERPRISE',
     name: 'Enterprise',
-    price: '$99',
-    period: '/month',
-    credits: 'Unlimited',
+    creditsWeekly: 'Unlimited',
+    creditsMonthly: 'Unlimited',
     description: 'For teams & business',
     features: [
       { label: 'Unlimited credits', included: true },
@@ -73,6 +69,20 @@ const CREDIT_PLANS = [
     color: 'from-purple-500 to-pink-600',
   },
 ];
+
+const WEEKLY = {
+  FREE:       '$0',
+  STARTER:    '$40',
+  PRO:        '$60',
+  ENTERPRISE: '$400',
+};
+
+const MONTHLY = {
+  FREE:       '$0',
+  STARTER:    '$160',
+  PRO:        '$240',
+  ENTERPRISE: '$1,600',
+};
 
 const CREDIT_PACKAGES = [
   {
@@ -106,9 +116,11 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
-function PlanCard({ plan, selected, onSelect }) {
+function PlanCard({ plan, selected, onSelect, billingCycle }) {
   const isSelected = selected === plan.id;
   const gradient = `bg-gradient-to-r ${plan.color}`;
+  const price = billingCycle === 'monthly' ? MONTHLY[plan.id] : WEEKLY[plan.id];
+  const period = billingCycle === 'monthly' ? '/month' : '/week';
   
   return (
     <motion.div
@@ -127,9 +139,24 @@ function PlanCard({ plan, selected, onSelect }) {
         <h3 className="text-xl font-headline font-bold text-on-surface mb-1">{plan.name}</h3>
         <p className="text-sm text-on-surface-variant mb-4">{plan.description}</p>
         
-        <div className="mb-6">
-          <span className="text-3xl font-headline font-bold text-on-surface">{plan.price}</span>
-          <span className="text-sm text-on-surface-variant">{plan.period}</span>
+        <div className="mb-2">
+          <span className="text-3xl font-headline font-bold text-on-surface">{price}</span>
+          <span className="text-sm text-on-surface-variant">{period}</span>
+        </div>
+
+        <div className="mb-5 px-3 py-2 bg-white/5 rounded-xl border border-white/5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-on-surface-variant font-label uppercase tracking-wider">Credits</span>
+            <span className="material-symbols-outlined text-[14px] text-emerald-400" style={{ fontVariationSettings: "'FILL' 1" }}>autorenew</span>
+          </div>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="text-lg font-bold text-on-surface">
+              {billingCycle === 'monthly' ? plan.creditsMonthly : plan.creditsWeekly}
+            </span>
+            <span className="text-xs text-on-surface-variant">
+              auto-renews every {billingCycle === 'monthly' ? 'month' : 'week'}
+            </span>
+          </div>
         </div>
         
         <ul className="space-y-3 mb-6">
@@ -196,6 +223,7 @@ export default function CreditsPage() {
   const [selectedPlan, setSelectedPlan] = useState('FREE');
   const [selectedPackage, setSelectedPackage] = useState('credits_2500');
   const [view, setView] = useState('plans');
+  const [billingCycle, setBillingCycle] = useState('weekly');
   const router = useRouter();
 
   const handlePlanSelect = async (planId) => {
@@ -227,23 +255,50 @@ export default function CreditsPage() {
         </p>
       </motion.header>
 
-      <div className="flex gap-4 mb-8">
-        <button
-          onClick={() => setView('plans')}
-          className={`px-4 py-2 rounded-xl font-bold text-sm ${
-            view === 'plans' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface'
-          }`}
-        >
-          Monthly Plans
-        </button>
-        <button
-          onClick={() => setView('credits')}
-          className={`px-4 py-2 rounded-xl font-bold text-sm ${
-            view === 'credits' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface'
-          }`}
-        >
-          Buy Credits
-        </button>
+      <div className="flex items-center gap-4 mb-8 flex-wrap">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setView('plans')}
+            className={`px-4 py-2 rounded-xl font-bold text-sm ${
+              view === 'plans' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface'
+            }`}
+          >
+            Plans
+          </button>
+          <button
+            onClick={() => setView('credits')}
+            className={`px-4 py-2 rounded-xl font-bold text-sm ${
+              view === 'credits' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface'
+            }`}
+          >
+            Buy Credits
+          </button>
+        </div>
+
+        {view === 'plans' && (
+          <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-full p-0.5">
+            <button
+              onClick={() => setBillingCycle('weekly')}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                billingCycle === 'weekly'
+                  ? 'bg-primary text-white shadow'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                billingCycle === 'monthly'
+                  ? 'bg-primary text-white shadow'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Monthly
+            </button>
+          </div>
+        )}
       </div>
 
       {view === 'plans' ? (
@@ -258,6 +313,7 @@ export default function CreditsPage() {
               plan={plan} 
               selected={selectedPlan}
               onSelect={setSelectedPlan} 
+              billingCycle={billingCycle}
             />
           ))}
         </motion.div>
@@ -287,11 +343,13 @@ export default function CreditsPage() {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-2xl font-bold text-on-surface">{currentPlan?.name}</span>
-            <span className="text-on-surface-variant ml-2">- {currentPlan?.credits} credits/month</span>
+            <span className="text-on-surface-variant ml-2">- {billingCycle === 'monthly' ? currentPlan?.creditsMonthly : currentPlan?.creditsWeekly} credits/{billingCycle === 'monthly' ? 'month' : 'week'}</span>
           </div>
           <div className="text-right">
-            <span className="text-xl font-bold text-on-surface">{currentPlan?.price}</span>
-            <span className="text-sm text-on-surface-variant">/month</span>
+            <span className="text-xl font-bold text-on-surface">
+              {billingCycle === 'monthly' ? MONTHLY[currentPlan?.id] : WEEKLY[currentPlan?.id]}
+            </span>
+            <span className="text-sm text-on-surface-variant">/{billingCycle === 'monthly' ? 'month' : 'week'}</span>
           </div>
         </div>
       </motion.div>
@@ -304,8 +362,8 @@ export default function CreditsPage() {
         </Link>
         <Link
           href={
-            view === 'plans'
-              ? `/admin/billing/payment?type=plan&id=${selectedPlan}`
+              view === 'plans'
+              ? `/admin/billing/payment?type=plan&id=${selectedPlan}&billingCycle=${billingCycle}`
               : `/admin/billing/payment?type=credits&id=${selectedPackage}`
           }
         >

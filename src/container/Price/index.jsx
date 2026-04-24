@@ -3,19 +3,32 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 
+const WEEKLY = {
+  FREE:       { price: '$0',   period: '/week' },
+  STARTER:    { price: '$40',  period: '/week' },
+  PRO:        { price: '$60',  period: '/week' },
+  ENTERPRISE: { price: '$400', period: '/week' },
+};
+
+const MONTHLY = {
+  FREE:       { price: '$0',   period: '/month' },
+  STARTER:    { price: '$160', period: '/month' },
+  PRO:        { price: '$240', period: '/month' },
+  ENTERPRISE: { price: '$1600', period: '/month' },
+};
+
 const PLANS = [
   {
     id: 'FREE',
     name: 'Free',
-    price: '$0',
-    period: '/week',
-    credits: 40,
+    creditsWeekly: 40,
+    creditsMonthly: 160,
     description: 'Perfect for trying out the platform',
     accent: 'from-gray-400 to-gray-500',
     ring: 'hover:ring-gray-400/40',
     badge: null,
     features: [
-      { label: '40 credits / week', ok: true },
+      { label: '40 credits/week · 160 credits/month', ok: true },
       { label: 'Standard resolution (720p)', ok: true },
       { label: 'Community gallery access', ok: true },
       { label: 'Basic models', ok: true },
@@ -29,15 +42,14 @@ const PLANS = [
   {
     id: 'STARTER',
     name: 'Starter',
-    price: '$9',
-    period: '/week',
-    credits: 200,
+    creditsWeekly: 200,
+    creditsMonthly: 800,
     description: 'For casual creators',
     accent: 'from-emerald-400 to-green-500',
     ring: 'hover:ring-emerald-400/40',
     badge: null,
     features: [
-      { label: '200 credits / week', ok: true },
+      { label: '200 credits/week · 800 credits/month', ok: true },
       { label: 'HD resolution (1024p)', ok: true },
       { label: 'Share to community', ok: true },
       { label: 'No watermarks', ok: true },
@@ -51,15 +63,14 @@ const PLANS = [
   {
     id: 'PRO',
     name: 'Pro',
-    price: '$29',
-    period: '/week',
-    credits: 500,
+    creditsWeekly: 500,
+    creditsMonthly: 2000,
     description: 'For serious artists',
     accent: 'from-violet-500 to-fuchsia-500',
     ring: 'ring-2 ring-violet-500/60',
     badge: 'Most Popular',
     features: [
-      { label: '500 credits / week', ok: true },
+      { label: '500 credits/week · 2000 credits/month', ok: true },
       { label: 'Full HD resolution (1280p)', ok: true },
       { label: 'Batch generation', ok: true },
       { label: 'Priority support', ok: true },
@@ -73,9 +84,8 @@ const PLANS = [
   {
     id: 'ENTERPRISE',
     name: 'Enterprise',
-    price: '$99',
-    period: '/month',
-    credits: 'Unlimited',
+    creditsWeekly: 'Unlimited',
+    creditsMonthly: 'Unlimited',
     description: 'For teams & businesses',
     accent: 'from-purple-500 to-pink-500',
     ring: 'hover:ring-purple-400/40',
@@ -153,7 +163,6 @@ export const PriceApp = () => {
             }`}
           >
             Monthly
-            <span className="ml-2 text-xs text-emerald-400 font-bold">-20%</span>
           </button>
         </div>
       </div>
@@ -184,16 +193,26 @@ export const PriceApp = () => {
 
               {/* Price */}
               <div className="mb-6">
-                <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-                <span className="text-gray-400 text-sm ml-1">{plan.period}</span>
+                <span className="text-4xl font-extrabold text-white">
+                  {(billingCycle === 'monthly' ? MONTHLY : WEEKLY)[plan.id].price}
+                </span>
+                <span className="text-gray-400 text-sm ml-1">
+                  {(billingCycle === 'monthly' ? MONTHLY : WEEKLY)[plan.id].period}
+                </span>
               </div>
 
               {/* Credits callout */}
               <div className={`mb-6 px-4 py-2 rounded-xl bg-gradient-to-r ${plan.accent} bg-opacity-10`}
                 style={{ background: 'rgba(255,255,255,0.05)' }}
               >
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Credits</span>
-                <p className="text-lg font-extrabold text-white">{plan.credits}<span className="text-sm font-normal text-gray-400"> / week</span></p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Credits</span>
+                  <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                  </svg>
+                </div>
+                <p className="text-lg font-extrabold text-white">{billingCycle === 'monthly' ? plan.creditsMonthly : plan.creditsWeekly}<span className="text-sm font-normal text-gray-400"> {billingCycle === 'monthly' ? '/ month' : '/ week'}</span></p>
+                <p className="text-[10px] text-gray-500 mt-0.5 font-label uppercase tracking-wider">Auto-renews {billingCycle === 'monthly' ? 'monthly' : 'weekly'}</p>
               </div>
 
               {/* Features */}

@@ -7,11 +7,14 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 /* ─── Catalogue (matches credits/page.js exactly) ──────────────────────── */
+const WEEKLY_PRICES = { FREE: 0, STARTER: 40, PRO: 60, ENTERPRISE: 400 };
+const MONTHLY_PRICES = { FREE: 0, STARTER: 160, PRO: 240, ENTERPRISE: 1600 };
+
 const PLAN_CATALOGUE = {
-  FREE:       { name: 'Free',       credits: 40,          priceNum: 0,   priceLabel: '$0',   period: '/week',  description: '40 credits per week' },
-  STARTER:    { name: 'Starter',    credits: 200,         priceNum: 9,   priceLabel: '$9',   period: '/week',  description: '200 credits per week' },
-  PRO:        { name: 'Pro',        credits: 500,         priceNum: 29,  priceLabel: '$29',  period: '/week',  description: '500 credits per week' },
-  ENTERPRISE: { name: 'Enterprise', credits: 'Unlimited', priceNum: 99,  priceLabel: '$99',  period: '/month', description: 'Unlimited credits per month' },
+  FREE:       { name: 'Free',       creditsWeekly: 40,        creditsMonthly: 160,       description: '40 credits/week · 160 credits/month' },
+  STARTER:    { name: 'Starter',    creditsWeekly: 200,       creditsMonthly: 800,       description: '200 credits/week · 800 credits/month' },
+  PRO:        { name: 'Pro',        creditsWeekly: 500,       creditsMonthly: 2000,      description: '500 credits/week · 2,000 credits/month' },
+  ENTERPRISE: { name: 'Enterprise', creditsWeekly: 'Unlimited', creditsMonthly: 'Unlimited', description: 'Unlimited credits' },
 };
 
 const PACKAGE_CATALOGUE = {
@@ -68,13 +71,22 @@ function PaymentContent() {
 
   const type = searchParams.get('type'); // 'plan' | 'credits'
   const id   = searchParams.get('id');   // e.g. 'PRO' | 'credits_2500'
+  const billingCycle = searchParams.get('billingCycle') || 'weekly'; // 'weekly' | 'monthly'
 
   /* Resolve selected item */
   const item = useMemo(() => {
-    if (type === 'plan')    return PLAN_CATALOGUE[id]    ? { ...PLAN_CATALOGUE[id],    type: 'plan',    id } : null;
+    if (type === 'plan') {
+      const base = PLAN_CATALOGUE[id];
+      if (!base) return null;
+      const priceNum = billingCycle === 'monthly' ? MONTHLY_PRICES[id] : WEEKLY_PRICES[id];
+      const priceLabel = `$${priceNum.toLocaleString()}`;
+      const period = billingCycle === 'monthly' ? '/month' : '/week';
+      const credits = billingCycle === 'monthly' ? base.creditsMonthly : base.creditsWeekly;
+      return { ...base, type: 'plan', id, priceNum, priceLabel, period, credits };
+    }
     if (type === 'credits') return PACKAGE_CATALOGUE[id] ? { ...PACKAGE_CATALOGUE[id], type: 'credits', id } : null;
     return null;
-  }, [type, id]);
+  }, [type, id, billingCycle]);
 
   /* Form state */
   const [cardNumber,   setCardNumber]   = useState('');
@@ -115,7 +127,7 @@ function PaymentContent() {
   if (!item) return <NoPlanSelected />;
 
   const periodLabel = item.type === 'plan'
-    ? `${item.name} plan · ${item.period}`
+    ? `${item.name} plan · ${billingCycle === 'monthly' ? 'monthly' : 'weekly'}`
     : 'One-time credit purchase';
 
   return (
