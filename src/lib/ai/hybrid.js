@@ -1,4 +1,4 @@
-import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V } from './chatgpt';
+import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V, generateImageWithDALLE } from './chatgpt';
 import { generateImageWithGemini, generateImageMetadata as generateGeminiMetadata } from './gemini';
 
 export async function generateHybridImage({
@@ -38,8 +38,13 @@ export async function generateHybridImage({
       }
     }
 
-    // Step 3: Generate image with Google Imagen 3
-    const imageResult = await generateImageWithGemini(enhancedPrompt, { width, height });
+    // Step 3: Generate image — try Gemini first, fall back to DALL-E 3
+    let imageResult = await generateImageWithGemini(enhancedPrompt, { width, height });
+
+    if (!imageResult.success) {
+      console.warn('[Hybrid] Gemini failed, falling back to DALL-E 3:', imageResult.error);
+      imageResult = await generateImageWithDALLE(enhancedPrompt, { width, height });
+    }
 
     if (!imageResult.success) {
       return {
