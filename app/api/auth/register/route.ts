@@ -47,9 +47,13 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Registration error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Registration error:", message);
     return NextResponse.json(
-      { error: "Failed to create user" },
+      {
+        error: "Failed to create user",
+        ...(process.env.NODE_ENV !== 'production' && { detail: message }),
+      },
       { status: 500 }
     );
   }
