@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  output: 'standalone',
   // Prevent Turbopack from bundling server-only packages that use
   // Node.js APIs like child_process.fork (bull) or native bindings (ioredis).
   serverExternalPackages: ['bull', 'ioredis'],
