@@ -2,144 +2,133 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const generationConfig = {
-  temperature: 0.9,
-  topP: 0.95,
-  topK: 40,
-  maxOutputTokens: 2048,
-  responseModalities: ['image', 'text'],
-};
-
 const safetySettings = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT,        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,       threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
 
-export async function generateImageWithGemini(prompt, options = {}) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
-
-  try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-preview-image-generation',
-      generationConfig,
-      safetySettings,
-    });
-
-    const enhancedPrompt = enhancePrompt(prompt);
-    
-    const result = await model.generateContent(enhancedPrompt);
-    const response = result.response;
-
-    const imageParts = response.candidates?.[0]?.content?.parts?.filter(
-      (part) => part.inlineData?.mimeType?.startsWith('image/')
-    );
-
-    if (imageParts && imageParts.length > 0) {
-      const imageData = imageParts[0].inlineData;
-      return {
-        success: true,
-        imageData: imageData.data,
-        mimeType: imageData.mimeType,
-        text: response.text(),
-        prompt: enhancedPrompt,
-      };
-    }
-
-    return {
-      success: false,
-      error: 'No image generated',
-      text: response.text(),
-    };
-  } catch (error) {
-    console.error('Gemini generation error:', error);
-    return {
-      success: false,
-      error: error.message || 'Failed to generate image with Gemini',
-    };
-  }
+function getAspectRatio(width, height) {
+  const ratio = width / height;
+  if (ratio >= 1.6)  return '16:9';
+  if (ratio >= 1.2)  return '4:3';
+  if (ratio <= 0.65) return '9:16';
+  if (ratio <= 0.85) return '3:4';
+  return '1:1';
 }
 
 function enhancePrompt(prompt) {
-  const styleModifiers = [
-    'highly detailed',
-    'professional photography',
-    '8k resolution',
-    'cinematic lighting',
-    'studio quality',
-  ];
-  
-  const randomStyles = styleModifiers
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 2)
-    .join(', ');
-  
-  return `${prompt}, ${randomStyles}, award-winning, masterpiece`;
+  const styles = ['highly detailed', 'professional photography', '8k resolution', 'cinematic lighting', 'studio quality'];
+  const pick = styles.sort(() => Math.random() - 0.5).slice(0, 2).join(', ');
+  return `${prompt}, ${pick}, award-winning, masterpiece`;
 }
 
-export async function generateImageMetadata(prompt, imageUrl) {
+/**
+ * Generate image via Google Imagen 3 REST API.
+ * Gemini's native image-generation (gemini-2.0-flash-exp) was removed.
+ * Imagen 3 is Google's current stable image-generation model.
+ */
+export async function generateImageWithGemini(prompt, options = {}) {
   if (!process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
+    return { success: false, error: 'GEMINI_API_KEY is not configured' };
   }
+
+  const { width = 1024, height = 1024 } = options;
+  const aspectRatio = getAspectRatio(width, height);
+  const enhancedPrompt = enhancePrompt(prompt);
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    
-    const metadataPrompt = `
-      Analyze this AI-generated image and provide detailed metadata in JSON format.
-      Prompt used: "${prompt}"
-      
-      Provide:
-      1. tags: array of relevant tags (max 10)
-      2. category: one of [portrait, landscape, abstract, sci-fi, fantasy, architecture, nature, character, art]
-      3. description: brief description (max 100 chars)
-      4. style: artistic style detected
-      5. mood: emotional tone
-      6. colors: dominant colors (max 5)
-      7. quality_score: 1-10 rating
-      
-      Return ONLY valid JSON, no markdown.
-    `;
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/` +
+      `imagen-3.0-generate-001:predict?key=${process.env.GEMINI_API_KEY}`;
 
-    const result = await model.generateContent([
-      { text: metadataPrompt },
-      { fileData: { mimeType: 'image/png', uri: imageUrl } }
-    ]);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt: enhancedPrompt }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio,
+          safetyFilterLevel: 'BLOCK_SOME',
+          personGeneration: 'ALLOW_ADULT',
+        },
+      }),
+    });
 
-    const text = result.response.text();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data.error?.message || `Imagen API ${res.status}`;
+      console.error('[Gemini/Imagen] Error:', msg);
+      return { success: false, error: msg };
     }
-    
+
+    const prediction = data.predictions?.[0];
+    const imageBase64 = prediction?.bytesBase64Encoded;
+    const mimeType    = prediction?.mimeType || 'image/png';
+
+    if (!imageBase64) {
+      return { success: false, error: 'No image data returned from Imagen' };
+    }
+
     return {
-      tags: [],
-      category: 'abstract',
-      description: prompt.slice(0, 100),
-      style: 'digital art',
-      mood: 'neutral',
-      colors: [],
-      quality_score: 7,
+      success: true,
+      imageData: imageBase64,
+      mimeType,
+      prompt: enhancedPrompt,
     };
   } catch (error) {
-    console.error('Metadata generation error:', error);
-    return {
-      tags: [],
-      category: 'abstract',
-      description: prompt.slice(0, 100),
-      style: 'digital art',
-      mood: 'neutral',
-      colors: [],
-      quality_score: 7,
-    };
+    console.error('[Gemini/Imagen] fetch error:', error.message);
+    return { success: false, error: error.message };
   }
 }
 
-export default {
-  generateImageWithGemini,
-  generateImageMetadata,
-};
+export async function generateImageMetadata(prompt) {
+  if (!process.env.GEMINI_API_KEY) return defaultMetadata(prompt);
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      safetySettings,
+    });
+
+    const metadataPrompt = `
+      Generate metadata for an AI image created from this prompt: "${prompt}"
+      Return ONLY valid JSON (no markdown):
+      {
+        "tags": ["tag1", "tag2"],
+        "category": "portrait|landscape|abstract|sci-fi|fantasy|architecture|nature|character|art",
+        "description": "max 100 chars",
+        "style": "artistic style",
+        "mood": "emotional tone",
+        "colors": ["color1", "color2"],
+        "quality_score": 7
+      }
+    `;
+
+    const result = await model.generateContent(metadataPrompt);
+    const text = result.response.text();
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+  } catch (err) {
+    console.error('[Gemini] Metadata error:', err.message);
+  }
+
+  return defaultMetadata(prompt);
+}
+
+function defaultMetadata(prompt) {
+  return {
+    tags: [],
+    category: 'abstract',
+    description: prompt.slice(0, 100),
+    style: 'digital art',
+    mood: 'neutral',
+    colors: [],
+    quality_score: 7,
+  };
+}
+
+export default { generateImageWithGemini, generateImageMetadata };

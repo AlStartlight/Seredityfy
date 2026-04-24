@@ -1,5 +1,5 @@
-import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V, generateImageWithDALLE } from './chatgpt';
-import { generateImageMetadata as generateGeminiMetadata } from './gemini';
+import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V } from './chatgpt';
+import { generateImageWithGemini, generateImageMetadata as generateGeminiMetadata } from './gemini';
 
 export async function generateHybridImage({
   prompt,
@@ -38,12 +38,8 @@ export async function generateHybridImage({
       }
     }
 
-    // Step 3: Generate image with DALL-E 3
-    const imageResult = await generateImageWithDALLE(enhancedPrompt, {
-      width,
-      height,
-      quality: model === 'cinematic-xl' ? 'hd' : 'standard',
-    });
+    // Step 3: Generate image with Google Imagen 3
+    const imageResult = await generateImageWithGemini(enhancedPrompt, { width, height });
 
     if (!imageResult.success) {
       return {
@@ -87,7 +83,7 @@ export async function generateHybridImage({
         hasReferenceImage: !!referenceImage,
         referenceStrength: strength,
         imageAnalysis,
-        generator: 'dall-e-3',
+        generator: 'imagen-3.0',
       },
       promptEmbedding,
     };
@@ -103,7 +99,7 @@ export async function generateHybridImage({
 
 export async function generateSimple(prompt) {
   const enhancedResult = await enhancePromptWithChatGPT(prompt);
-  const imageResult = await generateImageWithDALLE(
+  const imageResult = await generateImageWithGemini(
     enhancedResult.success ? enhancedResult.enhancedPrompt : prompt
   );
 
