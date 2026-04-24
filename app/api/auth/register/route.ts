@@ -48,12 +48,13 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("Registration error:", message);
+    const code = (error as any)?.code ?? null;
+    console.error("[register] error:", code, message);
+
+    // Always expose detail so Vercel Function Logs + client can show real cause.
+    // Remove the `detail` field once production is stable.
     return NextResponse.json(
-      {
-        error: "Failed to create user",
-        ...(process.env.NODE_ENV !== 'production' && { detail: message }),
-      },
+      { error: "Failed to create user", detail: message, code },
       { status: 500 }
     );
   }
