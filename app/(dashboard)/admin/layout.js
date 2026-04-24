@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Sidebar from '@/src/components/ui/Sidebar';
 import TopBar from '@/src/components/ui/TopBar';
 import { usePathname } from 'next/navigation';
@@ -20,12 +21,27 @@ function labelFromPath(pathname) {
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const active = labelFromPath(pathname);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar whenever the route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   return (
     <div className="bg-background text-on-background font-body min-h-screen selection:bg-primary selection:text-on-primary">
-      <Sidebar active={active} />
-      <TopBar active={active} />
-      <div className="ml-48">{children}</div>
+      {/* Backdrop overlay — mobile/tablet only */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <Sidebar active={active} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <TopBar active={active} onMenuClick={() => setSidebarOpen(true)} />
+      <div className="lg:ml-48">{children}</div>
     </div>
   );
 }

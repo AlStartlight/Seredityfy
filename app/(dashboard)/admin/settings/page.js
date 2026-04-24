@@ -495,7 +495,7 @@ export default function SettingsPage() {
 
   if (status === 'loading') {
     return (
-      <main className="p-10 max-w-6xl">
+      <main className="p-4 sm:p-6 lg:p-10 max-w-6xl">
         <div className="space-y-4">
           <div className="h-10 w-48 bg-surface-container-high rounded animate-pulse" />
           <div className="h-5 w-72 bg-surface-container-high rounded animate-pulse" />
@@ -512,15 +512,15 @@ export default function SettingsPage() {
   return (
     <>
       <Toast toast={toast} />
-      <main className="p-10 max-w-6xl">
+      <main className="p-4 sm:p-6 lg:p-10 max-w-6xl">
         <motion.header
-          className="mb-12"
+          className="mb-8 lg:mb-12"
           initial={prefersReduced ? false : { opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
         >
-          <h1 className="text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-2">Settings</h1>
-          <p className="text-on-surface-variant font-body text-lg">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-headline tracking-tighter text-on-surface mb-2">Settings</h1>
+          <p className="text-on-surface-variant font-body text-base lg:text-lg">
             Manage your creative workspace and account preferences.
           </p>
         </motion.header>

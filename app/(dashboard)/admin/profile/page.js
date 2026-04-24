@@ -414,7 +414,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Profile row */}
-          <div className="max-w-7xl mx-auto px-8 -mt-16 relative z-10">
+          <div className="max-w-7xl mx-auto px-4 lg:px-8 -mt-12 lg:-mt-16 relative z-10">
             <motion.div
               className="flex flex-col sm:flex-row items-end gap-5"
               initial={prefersReduced ? false : { opacity: 0, y: 20 }}
@@ -472,7 +472,7 @@ export default function ProfilePage() {
 
         {/* ── Tabs ──────────────────────────────────────────────────────── */}
         <section className="mt-10 sticky top-20 bg-background/80 backdrop-blur-md z-30 border-b border-white/5">
-          <div className="max-w-7xl mx-auto px-8 flex items-center gap-8">
+          <div className="max-w-7xl mx-auto px-4 lg:px-8 flex items-center gap-4 lg:gap-8 overflow-x-auto no-scrollbar">
             {TABS.map(tab => (
               <button
                 key={tab}
@@ -495,7 +495,7 @@ export default function ProfilePage() {
         </section>
 
         {/* ── Tab content ───────────────────────────────────────────────── */}
-        <section className="max-w-7xl mx-auto px-8 py-10">
+        <section className="max-w-7xl mx-auto px-4 lg:px-8 py-6 lg:py-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

@@ -2,10 +2,10 @@ import Link from 'next/link';
 
 export default function CompareViewPage() {
   return (
-    <main className="p-10 min-h-[calc(100vh-5rem)]">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+    <main className="p-4 sm:p-6 lg:p-10 min-h-[calc(100vh-5rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
         <div className="lg:col-span-8 space-y-6">
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/40 bg-surface-container-low lg:h-[750px] grid grid-cols-2">
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-purple-900/40 bg-surface-container-low aspect-square sm:aspect-video lg:aspect-auto lg:h-[750px] grid grid-cols-2">
             <div className="relative">
               <img className="w-full h-full object-cover" alt="Current" src="/assets/card1.png" />
               <div className="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur rounded-lg text-[10px] font-label text-white border border-white/10 uppercase tracking-widest">Current</div>

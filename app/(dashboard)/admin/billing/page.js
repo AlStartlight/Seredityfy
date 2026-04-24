@@ -45,16 +45,16 @@ export default function BillingPage() {
   const availableCredits = subscription?.availableCredits || currentPlan.credits;
   const usedCredits = subscription?.usedCredits || 0;
   return (
-    <main className="p-8 lg:p-12 max-w-[1600px]">
+    <main className="p-4 sm:p-6 lg:p-12 max-w-[1600px]">
       {/* Header Section */}
       <motion.header
-        className="mb-12 flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-end"
+        className="mb-8 lg:mb-12 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end"
         variants={headerVariants}
         initial="hidden"
         animate="visible"
       >
         <div className="space-y-2">
-          <h1 className="text-5xl font-headline font-extrabold tracking-tight text-on-surface">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-headline font-extrabold tracking-tight text-on-surface">
             Usage{' '}
             <span className="bg-gradient-to-br from-primary to-secondary bg-clip-text text-transparent">
               &amp;
@@ -165,7 +165,7 @@ export default function BillingPage() {
               <span className="material-symbols-outlined text-sm">north_east</span>
             </button>
           </div>
-          <div className="mt-auto grid grid-cols-3 gap-8 pt-8 relative z-10">
+          <div className="mt-auto grid grid-cols-3 gap-4 lg:gap-8 pt-6 lg:pt-8 relative z-10">
             <div>
               <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Monthly Cost</p>
               <p className="text-2xl font-bold font-headline text-on-surface">
@@ -229,7 +229,7 @@ export default function BillingPage() {
       </motion.section>
 
       {/* Footer / Support Section */}
-      <footer className="mt-20 border-t border-white/5 pt-12 pb-24 grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <footer className="mt-12 lg:mt-20 border-t border-white/5 pt-8 lg:pt-12 pb-16 lg:pb-24 grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         <div>
           <p className="text-on-surface font-headline font-bold mb-4">Aether AI Billing Support</p>
           <p className="text-on-surface-variant text-sm font-body">
@@ -237,7 +237,7 @@ export default function BillingPage() {
             Reach out for custom invoicing or volume discounts.
           </p>
         </div>
-        <div className="lg:col-span-2 flex justify-end gap-12">
+        <div className="lg:col-span-2 flex flex-col sm:flex-row sm:justify-end gap-8 lg:gap-12">
           <div className="text-right">
             <p className="text-[10px] uppercase font-label tracking-widest text-primary mb-4">Resources</p>
             <ul className="space-y-2 text-sm text-on-surface-variant">

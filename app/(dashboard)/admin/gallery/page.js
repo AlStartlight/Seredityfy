@@ -121,10 +121,10 @@ export default function GalleryPage() {
     : images;
 
   return (
-    <main className="p-8">
+    <main className="p-4 sm:p-6 lg:p-8">
       {/* Hero Title Section */}
-      <section className="mb-12">
-        <h2 className="text-5xl font-black font-headline text-on-surface tracking-tighter mb-4">
+      <section className="mb-6 lg:mb-12">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-headline text-on-surface tracking-tighter mb-4">
           Community{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Masterpieces</span>
         </h2>
@@ -134,7 +134,7 @@ export default function GalleryPage() {
       </section>
 
       {/* Search & Filter Bar (Glassmorphic) */}
-      <section className="mb-10 glass-panel bg-[#1f0438]/70 backdrop-blur-2xl p-4 rounded-2xl flex flex-wrap items-center gap-4 border border-outline-variant/10">
+      <section className="mb-6 lg:mb-10 glass-panel bg-[#1f0438]/70 backdrop-blur-2xl p-3 lg:p-4 rounded-2xl flex flex-wrap items-center gap-3 lg:gap-4 border border-outline-variant/10">
         {/* Sort Options */}
         <div className="flex gap-2 bg-surface-container-low p-1 rounded-xl">
           {SORT_OPTIONS.map((option) => (
@@ -169,7 +169,7 @@ export default function GalleryPage() {
         </div>
 
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-0 w-full sm:min-w-[200px] sm:w-auto">
           <input
             type="text"
             placeholder="Search community..."
@@ -225,7 +225,7 @@ export default function GalleryPage() {
       )}
 
       {/* Masonry Gallery Grid */}
-      <section className="columns-2 md:columns-4 lg:columns-5 gap-4">
+      <section className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-3 lg:gap-4">
         {loading && images.length === 0 ? (
           Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="mb-6 h-64 bg-surface-container-low rounded-2xl animate-pulse"></div>

@@ -210,14 +210,14 @@ export function LedgerTable() {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left font-body">
+        <table className="w-full text-left font-body min-w-[500px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-widest text-on-surface-variant border-b border-white/5">
-              <th className="px-8 py-5 font-bold">Date</th>
-              <th className="px-8 py-5 font-bold">Description</th>
-              <th className="px-8 py-5 font-bold text-right">Amount</th>
-              <th className="px-8 py-5 font-bold text-center">Status</th>
-              <th className="px-8 py-5 font-bold" />
+              <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold">Date</th>
+              <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold">Description</th>
+              <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold text-right">Amount</th>
+              <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold text-center">Status</th>
+              <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold" />
             </tr>
           </thead>
           <motion.tbody
@@ -232,27 +232,27 @@ export function LedgerTable() {
                 className="hover:bg-white/[0.02] transition-colors group"
                 variants={tableRowVariants}
               >
-                <td className="px-8 py-6 text-sm text-on-surface">{tx.date}</td>
-                <td className="px-8 py-6">
+                <td className="px-4 lg:px-8 py-4 lg:py-6 text-sm text-on-surface whitespace-nowrap">{tx.date}</td>
+                <td className="px-4 lg:px-8 py-4 lg:py-6">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded ${tx.iconBg} flex items-center justify-center ${tx.iconColor}`}>
+                    <div className={`w-8 h-8 rounded ${tx.iconBg} flex items-center justify-center ${tx.iconColor} shrink-0`}>
                       <span className="material-symbols-outlined text-sm">{tx.icon}</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-on-surface">{tx.name}</p>
-                      <p className="text-xs text-on-surface-variant">{tx.ref}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-on-surface truncate">{tx.name}</p>
+                      <p className="text-xs text-on-surface-variant truncate">{tx.ref}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-6 text-right font-label font-bold text-on-surface">{tx.amount}</td>
-                <td className="px-8 py-6">
+                <td className="px-4 lg:px-8 py-4 lg:py-6 text-right font-label font-bold text-on-surface whitespace-nowrap">{tx.amount}</td>
+                <td className="px-4 lg:px-8 py-4 lg:py-6">
                   <div className="flex justify-center">
                     <span className={`px-3 py-1 rounded-full ${tx.statusStyle} text-[10px] font-bold uppercase tracking-widest border`}>
                       {tx.status}
                     </span>
                   </div>
                 </td>
-                <td className="px-8 py-6 text-right">
+                <td className="px-4 lg:px-8 py-4 lg:py-6 text-right">
                   <button className="text-on-surface-variant hover:text-primary transition-colors">
                     <span className="material-symbols-outlined">more_horiz</span>
                   </button>

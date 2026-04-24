@@ -15,7 +15,7 @@ const navItems = [
   { icon: 'settings', label: 'Settings', href: '/admin/settings' },
 ];
 
-export default function Sidebar({ active = 'Generator' }) {
+export default function Sidebar({ active = 'Generator', isOpen = false, onClose }) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -26,14 +26,38 @@ export default function Sidebar({ active = 'Generator' }) {
     router.refresh();
   };
 
+  const handleLinkClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="h-screen w-48 fixed left-0 top-0 bg-[#1f0438]/70 backdrop-blur-3xl flex flex-col py-8 px-3 z-50 overflow-y-auto border-r border-white/5">
+    <aside
+      className={`
+        h-screen w-64 lg:w-48 fixed left-0 top-0
+        bg-[#1f0438]/95 backdrop-blur-3xl
+        flex flex-col py-8 px-3 z-50
+        overflow-y-auto border-r border-white/5
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}
+    >
+      {/* Close button — mobile/tablet only */}
+      <button
+        onClick={onClose}
+        className="lg:hidden absolute top-4 right-3 p-2 rounded-lg text-purple-300/50 hover:text-purple-100 transition-colors"
+        aria-label="Close menu"
+      >
+        <span className="material-symbols-outlined">close</span>
+      </button>
+
       <div className="mb-10 px-2">
-        <Link href="/admin">
+        <Link href="/admin" onClick={handleLinkClick}>
           <h1 className="text-xl font-bold tracking-tight text-[#d5baff] font-headline">Seredityfy AI</h1>
           <p className="text-[10px] uppercase tracking-[0.2em] font-label text-purple-300/40 mt-1">Electric Precision</p>
         </Link>
       </div>
+
       <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
           const isActive = item.label === active;
@@ -41,6 +65,7 @@ export default function Sidebar({ active = 'Generator' }) {
             <Link
               key={item.label}
               href={item.href}
+              onClick={handleLinkClick}
               className={
                 isActive
                   ? 'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-[#d5baff] font-bold border-r-2 border-[#d5baff] bg-white/5'
@@ -53,16 +78,18 @@ export default function Sidebar({ active = 'Generator' }) {
           );
         })}
       </nav>
+
       <div className="mt-auto space-y-4 pt-8">
         <Link
           href="/admin/generate"
+          onClick={handleLinkClick}
           className="w-full bg-primary text-on-primary font-label font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-primary/20"
         >
           <span className="material-symbols-outlined text-[20px]">add</span>
           New Imagination
         </Link>
         <div className="space-y-1">
-          <Link href="#" className="flex items-center gap-3 px-4 py-2 rounded-lg text-purple-300/50 hover:text-purple-100 font-label text-sm transition-all">
+          <Link href="#" onClick={handleLinkClick} className="flex items-center gap-3 px-4 py-2 rounded-lg text-purple-300/50 hover:text-purple-100 font-label text-sm transition-all">
             <span className="material-symbols-outlined text-[18px]">help</span>
             Help Center
           </Link>

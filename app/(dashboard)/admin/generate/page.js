@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useGenerate } from '@/src/hooks/useGenerate';
 import Image from 'next/image';
 
@@ -28,7 +29,8 @@ const RANDOM_PROMPTS = [
 ];
 
 export default function GeneratorPage() {
-  const [prompt, setPrompt] = useState('');
+  const searchParams = useSearchParams();
+  const [prompt, setPrompt] = useState(() => searchParams.get('prompt') || '');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS[0]);
   const [selectedAspect, setSelectedAspect] = useState(ASPECT_RATIOS[0]);
@@ -209,19 +211,19 @@ fetch('/api/upload/reference', {
   }, [fixSeed, seed]);
 
   return (
-    <main className="p-8 flex flex-col min-h-[calc(100vh-5rem)]">
+    <main className="p-4 sm:p-6 lg:p-8 flex flex-col min-h-[calc(100vh-5rem)]">
       {/* Credits Display */}
-      <div className="mb-6 flex items-center justify-between bg-surface-container-low rounded-xl p-4 border border-white/5">
+      <div className="mb-4 lg:mb-6 flex flex-wrap items-center justify-between gap-3 bg-surface-container-low rounded-xl p-3 lg:p-4 border border-white/5">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
           <div>
             <span className="text-xs font-label text-purple-300/60 uppercase">Available Credits</span>
-            <span className="ml-3 text-xl font-headline font-bold text-on-surface">{credits.remaining}</span>
+            <span className="ml-2 lg:ml-3 text-lg lg:text-xl font-headline font-bold text-on-surface">{credits.remaining}</span>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-2 lg:gap-4 text-xs">
           <span className="text-purple-300/60">Used: <span className="text-on-surface font-bold">{credits.used}</span></span>
-          <span className="text-purple-300/60">|</span>
+          <span className="text-purple-300/60 hidden sm:inline">|</span>
           <span className="text-purple-300/60">Cost: <span className="text-on-surface font-bold">~{credits.cost} CR</span></span>
         </div>
       </div>
@@ -235,24 +237,24 @@ fetch('/api/upload/reference', {
         </div>
       )}
       
-      <div className="flex gap-8 h-full">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 lg:h-full">
         {/* Generation Canvas */}
-        <div className="flex-1 flex flex-col gap-8 min-w-0">
+        <div className="flex-1 flex flex-col gap-4 lg:gap-8 min-w-0">
           {/* Prompt Section */}
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-2xl blur opacity-20 group-focus-within:opacity-50 transition duration-1000"></div>
             <div className="relative bg-surface-container-low rounded-2xl p-6 transition-all">
               <label className="block text-[10px] font-label uppercase tracking-widest text-purple-300/50 mb-3 ml-1">Describe your masterpiece</label>
               <textarea
-                className="w-full bg-transparent border-none focus:ring-0 text-xl font-headline font-medium placeholder:text-purple-300/20 text-on-surface leading-relaxed resize-none h-40 no-scrollbar"
+                className="w-full bg-transparent border-none focus:ring-0 text-lg lg:text-xl font-headline font-medium placeholder:text-purple-300/20 text-on-surface leading-relaxed resize-none h-28 lg:h-40 no-scrollbar"
                 placeholder="An ethereal cityscape submerged in neon violet water, floating bioluminescent jellyfish, cinematic hyper-realistic photography, 8k..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isGenerating}
               />
-              <div className="flex justify-between items-center mt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mt-4">
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={handleSurpriseMe}
                     disabled={isGenerating}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high text-xs font-label text-purple-200/80 hover:bg-surface-container-highest transition-colors disabled:opacity-50"
@@ -260,7 +262,7 @@ fetch('/api/upload/reference', {
                     <span className="material-symbols-outlined text-sm">stars</span>
                     Surprise Me
                   </button>
-                  <button 
+                  <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isGenerating}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high text-xs font-label text-purple-200/80 hover:bg-surface-container-highest transition-colors disabled:opacity-50"
@@ -276,10 +278,10 @@ fetch('/api/upload/reference', {
                     className="hidden"
                   />
                 </div>
-                <button 
+                <button
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim()}
-                  className="bg-gradient-to-r from-primary to-[#ffabf3] text-on-primary font-headline font-extrabold px-10 py-3 rounded-xl shadow-[0_0_30px_rgba(213,186,255,0.3)] active:scale-95 transition-all duration-300 neon-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="w-full sm:w-auto bg-gradient-to-r from-primary to-[#ffabf3] text-on-primary font-headline font-extrabold px-8 lg:px-10 py-3 rounded-xl shadow-[0_0_30px_rgba(213,186,255,0.3)] active:scale-95 transition-all duration-300 neon-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isGenerating ? (
                     <>
@@ -374,10 +376,10 @@ fetch('/api/upload/reference', {
           </div>
 
           {/* Results Grid */}
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-8">
-            <div className="grid grid-cols-12 grid-rows-2 gap-6 h-full min-h-[400px]">
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-4 lg:pb-8">
+            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:grid-rows-2 lg:gap-6 lg:h-full lg:min-h-[400px]">
               {/* Main Preview */}
-              <div className="col-span-8 row-span-2 bg-surface-container-low rounded-[2rem] flex flex-col items-center justify-center text-center p-12 border border-white/5 relative overflow-hidden">
+              <div className="min-h-[260px] sm:min-h-[320px] lg:min-h-0 lg:col-span-8 lg:row-span-2 bg-surface-container-low rounded-[2rem] flex flex-col items-center justify-center text-center p-6 lg:p-12 border border-white/5 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5"></div>
                 
                 {currentImage?.imageUrl ? (
@@ -509,39 +511,40 @@ fetch('/api/upload/reference', {
                 )}
               </div>
 
-              {/* Recent Results */}
-              {history.slice(0, 2).map((img, idx) => (
-                <div key={img.id || idx} className="col-span-4 row-span-1 group relative rounded-3xl overflow-hidden cursor-pointer">
-                  <img
-                    className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-105 group-hover:scale-100"
-                    alt={img.prompt}
-                    src={img.imageUrl || '/assets/card1.png'}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
-                    <span className="text-[10px] font-label text-secondary uppercase tracking-widest mb-1">{img.model}</span>
-                    <p className="text-xs text-white/80 line-clamp-2">{img.prompt}</p>
+              {/* Recent Results — horizontal scroll on mobile, grid cells on desktop */}
+              <div className="flex gap-3 overflow-x-auto pb-1 lg:pb-0 lg:contents">
+                {history.slice(0, 2).map((img, idx) => (
+                  <div key={img.id || idx} className="w-28 h-28 sm:w-36 sm:h-36 shrink-0 lg:w-auto lg:h-auto lg:col-span-4 lg:row-span-1 group relative rounded-3xl overflow-hidden cursor-pointer">
+                    <img
+                      className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 scale-105 group-hover:scale-100"
+                      alt={img.prompt}
+                      src={img.imageUrl || '/assets/card1.png'}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 lg:p-6 flex flex-col justify-end">
+                      <span className="text-[10px] font-label text-secondary uppercase tracking-widest mb-1">{img.model}</span>
+                      <p className="text-xs text-white/80 line-clamp-2">{img.prompt}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-              
-              {history.length < 2 && (
-                <>
-                  <div className="col-span-4 row-span-1 bg-surface-container-low rounded-3xl flex items-center justify-center">
-                    <span className="material-symbols-outlined text-4xl text-purple-300/20">image</span>
-                  </div>
-                  {history.length === 0 && (
-                    <div className="col-span-4 row-span-1 bg-surface-container-low rounded-3xl flex items-center justify-center">
+                ))}
+                {history.length < 2 && (
+                  <>
+                    <div className="hidden lg:flex lg:col-span-4 lg:row-span-1 bg-surface-container-low rounded-3xl items-center justify-center">
                       <span className="material-symbols-outlined text-4xl text-purple-300/20">image</span>
                     </div>
-                  )}
-                </>
-              )}
+                    {history.length === 0 && (
+                      <div className="hidden lg:flex lg:col-span-4 lg:row-span-1 bg-surface-container-low rounded-3xl items-center justify-center">
+                        <span className="material-symbols-outlined text-4xl text-purple-300/20">image</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Controls Sidebar */}
-        <aside className="w-80 flex flex-col gap-6 h-full overflow-y-auto no-scrollbar">
+        <aside className="w-full lg:w-80 flex flex-col gap-4 lg:gap-6 lg:h-full overflow-y-auto no-scrollbar">
           {/* Model Selection */}
           <section className="bg-surface-container-low rounded-3xl p-6 border border-white/5">
             <h4 className="text-xs font-label uppercase tracking-widest text-purple-300/40 mb-6">Model Engine</h4>
