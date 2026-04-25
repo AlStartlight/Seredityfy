@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
+
+const MODEL = 'gemini-2.5-flash-lite-preview-09-2025';
 
 const PROMPT_TEMPLATE = `Analyze this image and convert it into a cinematic video prompt.
 
@@ -16,30 +18,21 @@ Requirements:
 
 Return ONLY the video prompt text, no explanation.`;
 
-// Model candidates — dicoba berurutan sampai berhasil
-const MODELS = [
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-latest',
-];
-
-async function tryGenerateWithFallback(genAI, parts) {
-  for (const modelId of MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelId });
-      const result = await model.generateContent(parts);
-      const text = result.response.text().trim();
-      if (text) {
-        console.log(`[gemini-prompt] Success with model: ${modelId}`);
-        return text;
-      }
-    } catch (err) {
-      console.warn(`[gemini-prompt] ${modelId} failed:`, err.message?.slice(0, 100));
-    }
-  }
-  return null;
-}
+const GENERATION_CONFIG = {
+  maxOutputTokens: 65535,
+  temperature: 1,
+  topP: 0.95,
+  thinkingConfig: {
+    thinkingBudget: 0,
+  },
+  tools: [{ googleSearch: {} }],
+  safetySettings: [
+    { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'OFF' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+    { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'OFF' },
+  ],
+};
 
 export async function POST(request) {
   try {
@@ -53,62 +46,71 @@ export async function POST(request) {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_CLOUD_API_KEY;
+    const apiKey = process.env.GOOGLE_CLOUD_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: 'GEMINI_API_KEY is not configured' },
+        { success: false, error: 'GOOGLE_CLOUD_API_KEY or GEMINI_API_KEY is not configured' },
         { status: 500 }
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const ai = new GoogleGenAI({ apiKey });
 
     let parts;
 
     if (imageUrl?.startsWith('data:')) {
-      // Base64 data URL
       const commaIdx = imageUrl.indexOf(',');
-      const meta = imageUrl.slice(0, commaIdx);        // "data:image/png;base64"
-      const base64Data = imageUrl.slice(commaIdx + 1); // actual base64
-      const mimeType = meta.replace('data:', '').replace(';base64', '');
+      const mimeType = imageUrl.slice(5, commaIdx).replace(';base64', '');
+      const data = imageUrl.slice(commaIdx + 1);
       parts = [
         { text: PROMPT_TEMPLATE },
-        { inlineData: { mimeType, data: base64Data } },
+        { inlineData: { mimeType, data } },
       ];
     } else if (imageUrl?.startsWith('http')) {
-      // Remote URL — fetch and convert to base64
       try {
         const imageResp = await fetch(imageUrl, { signal: AbortSignal.timeout(8000) });
         if (!imageResp.ok) throw new Error(`HTTP ${imageResp.status}`);
         const buffer = await imageResp.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
+        const data = Buffer.from(buffer).toString('base64');
         const mimeType = imageResp.headers.get('content-type') || 'image/png';
         parts = [
           { text: PROMPT_TEMPLATE },
-          { inlineData: { mimeType, data: base64 } },
+          { inlineData: { mimeType, data } },
         ];
       } catch (fetchErr) {
-        console.warn('[gemini-prompt] Image fetch failed, using description fallback:', fetchErr.message);
-        // Fallback: text-only dengan URL sebagai konteks
-        parts = [`${PROMPT_TEMPLATE}\n\nImage URL: ${imageUrl}`];
+        console.warn('[gemini-prompt] Image fetch failed, using text fallback:', fetchErr.message);
+        parts = [{ text: `${PROMPT_TEMPLATE}\n\nImage URL: ${imageUrl}` }];
       }
     } else {
-      // Text description only
-      parts = [`${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}`];
+      parts = [{ text: `${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}` }];
     }
 
-    const prompt = await tryGenerateWithFallback(genAI, parts);
+    const resp = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{ role: 'user', parts }],
+      config: GENERATION_CONFIG,
+    });
 
+    const prompt = resp.text?.trim();
     if (!prompt) {
       return NextResponse.json(
-        { success: false, error: 'All Gemini models failed to generate a prompt. Check your GEMINI_API_KEY in Vercel.' },
+        { success: false, error: 'Model returned no text. Check your API key at https://aistudio.google.com/apikey' },
         { status: 500 }
       );
     }
 
+    console.log(`[gemini-prompt] Success with ${MODEL}`);
     return NextResponse.json({ success: true, prompt });
 
   } catch (err) {
+    const isDisabled = err.message?.includes('SERVICE_DISABLED') || err.message?.includes('has not been used') || err.status === 403;
+    if (isDisabled) {
+      console.error('[gemini-prompt] API key invalid or API disabled. Get a key at https://aistudio.google.com/apikey');
+      return NextResponse.json(
+        { success: false, error: 'Gemini API disabled. Set GOOGLE_CLOUD_API_KEY from https://aistudio.google.com/apikey' },
+        { status: 500 }
+      );
+    }
     console.error('[gemini-prompt] error:', err.message);
     return NextResponse.json(
       { success: false, error: err.message || 'Internal server error' },
