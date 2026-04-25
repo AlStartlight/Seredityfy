@@ -1,24 +1,20 @@
 const GEMINI_VEO_ENDPOINT = model =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-const VERTEX_VEO_ENDPOINT = (project, location) =>
-  `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/veo-3.1:predict`;
-
-/* ── Mocks ─────────────────────────────────────────────────────────────── */
-const MOCK_GENERATIONS = new Map();
-
-function mockVeoGenerate({ prompt, imageUrl, duration }) {
-  const id = `veo_mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const videoUrl = `https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4`;
-
-  MOCK_GENERATIONS.set(id, {
-    state: 'completed',
-    videoUrl,
-    thumbnailUrl: imageUrl,
-  });
-
-  return { success: true, generationId: id, state: 'completed', mockVideoUrl: videoUrl };
+/**
+ * GCS multi-region names ("us", "eu", "asia") are NOT valid Vertex AI
+ * compute regions. Map them to the closest regional endpoint.
+ * Veo 3.1 is currently only available in us-central1.
+ */
+const VERTEX_REGION_MAP = { us: 'us-central1', eu: 'europe-west1', asia: 'asia-northeast1' };
+function normalizeVertexLocation(loc) {
+  return VERTEX_REGION_MAP[loc] ?? loc;
 }
+
+const VERTEX_VEO_ENDPOINT = (project, location) => {
+  const region = normalizeVertexLocation(location);
+  return `https://${region}-aiplatform.googleapis.com/v1/projects/${project}/locations/${region}/publishers/google/models/veo-3.1:predict`;
+};
 
 /* ── Auth helpers ──────────────────────────────────────────────────────── */
 async function getAccessToken() {
@@ -86,13 +82,26 @@ async function tryGeminiApiVeo({ prompt, imageBase64, imageMime, apiKey }) {
 }
 
 /* ── Vertex AI Veo 3.1 ─────────────────────────────────────────────────── */
-async function tryVertexAiVeo({ prompt, imageBase64, imageMime, duration, aspectRatio }) {
+async function tryVertexAiVeo({ prompt, imageBase64, duration, aspectRatio }) {
   const project = process.env.GOOGLE_CLOUD_PROJECT;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+  const rawLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+  const location = normalizeVertexLocation(rawLocation);
 
   if (!project) {
     console.warn('[Veo] GOOGLE_CLOUD_PROJECT not set, skipping Vertex AI');
     return null;
+  }
+
+  if (/\s/.test(project)) {
+    console.error(
+      `[Veo] GOOGLE_CLOUD_PROJECT="${project}" looks like a display name (contains spaces). ` +
+      'Set it to the project ID (e.g. my-project-123456). Skipping Vertex AI.'
+    );
+    return null;
+  }
+
+  if (rawLocation !== location) {
+    console.warn(`[Veo] GOOGLE_CLOUD_LOCATION="${rawLocation}" is a GCS multi-region — using "${location}" for Vertex AI.`);
   }
 
   try {
@@ -238,27 +247,26 @@ export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16
   /* Try Vertex AI Veo 3.1 */
   if (apiKey) {
     let imageBase64 = null;
-    let imageMime = 'image/png';
 
     if (imageUrl) {
       try {
         if (imageUrl.startsWith('data:')) {
           const match = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-          if (match) {
-            imageMime = match[1];
-            imageBase64 = match[2];
-          }
+          if (match) imageBase64 = match[2];
         }
       } catch {}
     }
 
-    const vertexResult = await tryVertexAiVeo({ prompt, imageBase64, imageMime, duration, aspectRatio });
+    const vertexResult = await tryVertexAiVeo({ prompt, imageBase64, duration, aspectRatio });
     if (vertexResult) return vertexResult;
   }
 
-  /* Fall back to mock */
-  console.warn('[Veo] All real methods failed, using mock');
-  return mockVeoGenerate({ prompt, imageUrl, duration });
+  /* All real methods failed — surface the error instead of a broken mock */
+  console.error('[Veo] All generation methods failed. Check GOOGLE_CLOUD_PROJECT (must be project ID, not display name), GOOGLE_CLOUD_LOCATION (must be us-central1), GOOGLE_SERVICE_ACCOUNT_KEY, and GEMINI_API_KEY.');
+  return {
+    success: false,
+    error: 'Video generation unavailable. Check server configuration (GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION / GOOGLE_SERVICE_ACCOUNT_KEY).',
+  };
 }
 
 export default { generateVideoWithVeo };
