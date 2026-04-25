@@ -143,7 +143,8 @@ export async function generateImageWithDALLE(prompt, options = {}) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 50_000); // 50s — bawah limit Vercel 60s
+    // 55s — beri waktu cukup sebelum Vercel kill di 60s, tapi tetap return JSON
+    const timeoutId = setTimeout(() => controller.abort(), 55_000);
 
     let response;
     try {
@@ -154,7 +155,7 @@ export async function generateImageWithDALLE(prompt, options = {}) {
           n: 1,
           size,
           quality: mapQuality(quality),
-          // response_format tidak didukung oleh gpt-image-1; b64_json selalu dikembalikan
+          // response_format tidak didukung gpt-image-1.5; b64_json selalu dikembalikan
         },
         { signal: controller.signal }
       );
@@ -164,7 +165,7 @@ export async function generateImageWithDALLE(prompt, options = {}) {
 
     const b64 = response.data[0]?.b64_json;
     if (!b64) {
-      return { success: false, error: 'No image data returned from gpt-image-1' };
+      return { success: false, error: 'No image data returned from gpt-image-1.5' };
     }
 
     return {
@@ -174,11 +175,21 @@ export async function generateImageWithDALLE(prompt, options = {}) {
       revisedPrompt: prompt,
     };
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('gpt-image-1 generation timeout (>50s)');
-      return { success: false, error: 'gpt-image-1 timed out — try a simpler prompt or smaller size.' };
+    // OpenAI SDK melempar APIUserAbortError saat signal di-abort, bukan AbortError standar
+    const isAbort =
+      error.name === 'AbortError' ||
+      error.name === 'APIUserAbortError' ||
+      error.message?.toLowerCase().includes('abort') ||
+      error.message?.toLowerCase().includes('cancel');
+
+    if (isAbort) {
+      console.error('[gpt-image-1.5] Generation timeout (>55s)');
+      return {
+        success: false,
+        error: 'Image generation timed out. Try a simpler prompt or smaller canvas size.',
+      };
     }
-    console.error('gpt-image-1 generation error:', error);
+    console.error('[gpt-image-1.5] Generation error:', error.message);
     return { success: false, error: error.message };
   }
 }
