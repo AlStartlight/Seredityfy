@@ -28,7 +28,7 @@ export async function generateHybridImage({
   if (!imageResult.success) {
     return { success: false, error: imageResult.error || 'Generation failed', prompt };
   }
-
+//bnmn
   return {
     success: true,
     imageData: imageResult.imageData,
