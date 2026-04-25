@@ -120,11 +120,17 @@ export async function analyzeImageWithGPT4V(imageUrl) {
   }
 }
 
-// gpt-image-1 supported sizes
+// gpt-image-1 supported sizes: 1024x1024, 1536x1024, 1024x1536
 function getDalleSize(width, height) {
-  if (width > height) return '1792x1024';
-  if (height > width) return '1024x1792';
+  if (width > height) return '1536x1024';
+  if (height > width) return '1024x1536';
   return '1024x1024';
+}
+
+// Map legacy DALL-E quality values to gpt-image-1 values
+function mapQuality(quality) {
+  const map = { standard: 'medium', hd: 'high' };
+  return map[quality] ?? quality;
 }
 
 export async function generateImageWithDALLE(prompt, options = {}) {
@@ -132,7 +138,7 @@ export async function generateImageWithDALLE(prompt, options = {}) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const { width = 1024, height = 1024, quality = 'standard' } = options;
+  const { width = 1024, height = 1024, quality = 'auto' } = options;
   const size = getDalleSize(width, height);
 
   try {
@@ -141,20 +147,20 @@ export async function generateImageWithDALLE(prompt, options = {}) {
       prompt,
       n: 1,
       size,
-      quality,
-      response_format: 'b64_json',
+      quality: mapQuality(quality),
+      // response_format tidak didukung oleh gpt-image-1; b64_json selalu dikembalikan
     });
 
     const b64 = response.data[0]?.b64_json;
     if (!b64) {
-      return { success: false, error: 'No image data returned from DALL-E' };
+      return { success: false, error: 'No image data returned from gpt-image-1' };
     }
 
     return {
       success: true,
       imageData: b64,
       mimeType: 'image/png',
-      revisedPrompt: response.data[0]?.revised_prompt || prompt,
+      revisedPrompt: prompt,
     };
   } catch (error) {
     console.error('gpt-image-1 generation error:', error);

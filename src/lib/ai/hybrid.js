@@ -46,15 +46,15 @@ export async function generateHybridImage({
       }
     }
 
-    // Step 3: Generate image — try Gemini first, fall back to DALL-E 3
+    // Step 3: Generate image — try Gemini first, fall back to gpt-image-1
     let imageResult = await generateImageWithGemini(enhancedPrompt, { width, height });
 
     if (!imageResult.success) {
-      console.warn('[Hybrid] Gemini failed, falling back to DALL-E 3:', imageResult.error);
+      console.warn('[Hybrid] Gemini failed, falling back to gpt-image-1:', imageResult.error);
       try {
         imageResult = await generateImageWithDALLE(enhancedPrompt, { width, height });
       } catch (dalleErr) {
-        console.warn('[Hybrid] DALL-E fallback error:', dalleErr.message);
+        console.warn('[Hybrid] gpt-image-1 fallback error:', dalleErr.message);
         imageResult = { success: false, error: dalleErr.message };
       }
     }
@@ -67,7 +67,7 @@ export async function generateHybridImage({
       };
     }
 
-    // Use DALL-E's revised prompt if available
+    // Use revised prompt if available
     if (imageResult.revisedPrompt) {
       enhancedPrompt = imageResult.revisedPrompt;
     }
