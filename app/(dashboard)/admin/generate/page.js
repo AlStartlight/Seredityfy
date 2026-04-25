@@ -242,16 +242,37 @@ fetch('/api/upload/reference', {
         <div className="flex-1 flex flex-col gap-4 lg:gap-8 min-w-0">
           {/* Prompt Section */}
           <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-secondary/30 rounded-2xl blur opacity-20 group-focus-within:opacity-50 transition duration-1000"></div>
-            <div className="relative bg-surface-container-low rounded-2xl p-6 transition-all">
-              <label className="block text-[10px] font-label uppercase tracking-widest text-purple-300/50 mb-3 ml-1">Describe your masterpiece</label>
+            <div className={`absolute -inset-0.5 bg-gradient-to-r rounded-2xl blur opacity-20 group-focus-within:opacity-50 transition duration-1000 ${prompt.length > 300 ? 'from-red-500/50 to-orange-500/50' : 'from-primary/30 to-secondary/30'}`}></div>
+            <div className={`relative bg-surface-container-low rounded-2xl p-6 transition-all ${prompt.length > 300 ? 'ring-1 ring-red-500/40' : ''}`}>
+              <div className="flex items-center justify-between mb-3 ml-1">
+                <label className="block text-[10px] font-label uppercase tracking-widest text-purple-300/50">Describe your masterpiece</label>
+                <span className={`text-[10px] font-mono font-bold tabular-nums transition-colors ${
+                  prompt.length > 300 ? 'text-red-400' :
+                  prompt.length > 260 ? 'text-orange-400' :
+                  'text-purple-300/40'
+                }`}>
+                  {prompt.length}/300
+                </span>
+              </div>
+
               <textarea
                 className="w-full bg-transparent border-none focus:ring-0 text-lg lg:text-xl font-headline font-medium placeholder:text-purple-300/20 text-on-surface leading-relaxed resize-none h-28 lg:h-40 no-scrollbar"
                 placeholder="An ethereal cityscape submerged in neon violet water, floating bioluminescent jellyfish, cinematic hyper-realistic photography, 8k..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isGenerating}
+                maxLength={300}
               />
+
+              {prompt.length >= 300 && (
+                <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <span className="material-symbols-outlined text-red-400 text-sm">warning</span>
+                  <p className="text-xs text-red-400 font-label">
+                    Batas maksimum 300 karakter tercapai. Credit tidak akan terpotong.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mt-4">
                 <div className="flex gap-2">
                   <button
@@ -280,7 +301,7 @@ fetch('/api/upload/reference', {
                 </div>
                 <button
                   onClick={handleGenerate}
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={isGenerating || !prompt.trim() || prompt.length > 300}
                   className="w-full sm:w-auto bg-gradient-to-r from-primary to-[#ffabf3] text-on-primary font-headline font-extrabold px-8 lg:px-10 py-3 rounded-xl shadow-[0_0_30px_rgba(213,186,255,0.3)] active:scale-95 transition-all duration-300 neon-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isGenerating ? (
