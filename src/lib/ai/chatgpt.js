@@ -120,17 +120,11 @@ export async function analyzeImageWithGPT4V(imageUrl) {
   }
 }
 
-// gpt-image-1 supported sizes: 1024x1024, 1536x1024, 1024x1536
+// DALL-E 3 supported sizes
 function getDalleSize(width, height) {
-  if (width > height) return '1536x1024';
-  if (height > width) return '1024x1536';
+  if (width > height) return '1792x1024';
+  if (height > width) return '1024x1792';
   return '1024x1024';
-}
-
-// Map legacy DALL-E quality values to gpt-image-1 values
-function mapQuality(quality) {
-  const map = { standard: 'medium', hd: 'high' };
-  return map[quality] ?? quality;
 }
 
 export async function generateImageWithDALLE(prompt, options = {}) {
@@ -138,58 +132,32 @@ export async function generateImageWithDALLE(prompt, options = {}) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const { width = 1024, height = 1024, quality = 'auto' } = options;
+  const { width = 1024, height = 1024, quality = 'standard' } = options;
   const size = getDalleSize(width, height);
 
   try {
-    const controller = new AbortController();
-    // 55s — beri waktu cukup sebelum Vercel kill di 60s, tapi tetap return JSON
-    const timeoutId = setTimeout(() => controller.abort(), 55_000);
-
-    let response;
-    try {
-      response = await openai.images.generate(
-        {
-          model: 'gpt-image-2',
-          prompt,
-          n: 1,
-          size,
-          quality: mapQuality(quality),
-          // response_format tidak didukung gpt-image-1.5; b64_json selalu dikembalikan
-        },
-        { signal: controller.signal }
-      );
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const response = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size,
+      quality,
+      response_format: 'b64_json',
+    });
 
     const b64 = response.data[0]?.b64_json;
     if (!b64) {
-      return { success: false, error: 'No image data returned from gpt-image-1.5' };
+      return { success: false, error: 'No image data returned from DALL-E 3' };
     }
 
     return {
       success: true,
       imageData: b64,
       mimeType: 'image/png',
-      revisedPrompt: prompt,
+      revisedPrompt: response.data[0]?.revised_prompt || prompt,
     };
   } catch (error) {
-    // OpenAI SDK melempar APIUserAbortError saat signal di-abort, bukan AbortError standar
-    const isAbort =
-      error.name === 'AbortError' ||
-      error.name === 'APIUserAbortError' ||
-      error.message?.toLowerCase().includes('abort') ||
-      error.message?.toLowerCase().includes('cancel');
-
-    if (isAbort) {
-      console.error('[gpt-image-1.5] Generation timeout (>55s)');
-      return {
-        success: false,
-        error: 'Image generation timed out. Try a simpler prompt or smaller canvas size.',
-      };
-    }
-    console.error('[gpt-image-1.5] Generation error:', error.message);
+    console.error('[DALL-E 3] Generation error:', error.message);
     return { success: false, error: error.message };
   }
 }

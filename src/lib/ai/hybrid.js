@@ -1,10 +1,11 @@
-import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V, generateImageWithDALLE } from './chatgpt';
-import { generateImageWithGemini } from './gemini';
+import { generateImageWithDALLE } from './chatgpt';
+import { generateImageWithGemini, generateImageMetadata } from './gemini';
 import { enhancePromptWithRAG } from './promptRag';
 
 export async function generateHybridImage({
   prompt,
-  userId: _userId,
+  userId = null,
+  characterName = null,
   model = 'seredityfy-v2',
   generationMode = 'HYBRID',
   width = 1024,
@@ -18,80 +19,48 @@ export async function generateHybridImage({
   const startTime = Date.now();
 
   try {
-    let enhancedPrompt = prompt;
-    let promptEmbedding = null;
-    let imageAnalysis = null;
+    let finalPrompt = prompt;
+    let ragMeta = {};
 
-    // Step 1: RAG-based prompt enhancement — chunk prompt, retrieve artistic context, reassemble
+    // Step 1: RAG + LangChain + Character Consistency
+    // Chunk → retrieve style context → extract/inject character → assemble dengan GPT-4o-mini
     try {
-      const ragResult = await enhancePromptWithRAG(prompt);
+      const ragResult = await enhancePromptWithRAG(prompt, { userId, characterName });
       if (ragResult.success) {
-        enhancedPrompt = ragResult.enhancedPrompt;
-        console.log(`[Hybrid] RAG enhanced prompt (${ragResult.chunksProcessed} chunks, context: ${ragResult.contextUsed})`);
+        finalPrompt = ragResult.enhancedPrompt;
+        ragMeta = {
+          chunksProcessed: ragResult.chunksProcessed,
+          characterDetected: ragResult.characterDetected,
+          characterName: ragResult.characterName,
+        };
+        console.log(
+          `[Hybrid] RAG done — chunks: ${ragResult.chunksProcessed}, ` +
+          `character: ${ragResult.characterDetected}, name: ${ragResult.characterName}`
+        );
       }
     } catch (ragErr) {
-      console.warn('[Hybrid] RAG enhancement skipped:', ragErr.message);
-      // Fallback to ChatGPT enhancement
-      if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
-        try {
-          const enhancementResult = await enhancePromptWithChatGPT(prompt);
-          if (enhancementResult.success) enhancedPrompt = enhancementResult.enhancedPrompt;
-        } catch (enhErr) {
-          console.warn('[Hybrid] ChatGPT fallback enhancement skipped:', enhErr.message);
-        }
-      }
+      console.warn('[Hybrid] RAG skipped, using raw prompt:', ragErr.message);
     }
 
-    // Step 2: Analyse reference image if provided (optional)
-    if (referenceImage) {
-      try {
-        const analysisResult = await analyzeImageWithGPT4V(referenceImage);
-        if (analysisResult.success) {
-          imageAnalysis = analysisResult.description;
-          enhancedPrompt = `${enhancedPrompt}. Style reference: ${analysisResult.description}`;
-        }
-      } catch (refErr) {
-        console.warn('[Hybrid] Reference image analysis skipped:', refErr.message);
-      }
-    }
+    // Step 2: Gemini image generation (primary)
+    let imageResult = await generateImageWithGemini(finalPrompt, { width, height });
 
-    // Step 3: Generate image — try Gemini first, fall back to gpt-image-1
-    let imageResult = await generateImageWithGemini(enhancedPrompt, { width, height });
-
+    // Step 3: DALL-E 3 fallback jika Gemini gagal
     if (!imageResult.success) {
-      console.warn('[Hybrid] Gemini failed, falling back to gpt-image-1:', imageResult.error);
-      try {
-        imageResult = await generateImageWithDALLE(enhancedPrompt, { width, height });
-      } catch (dalleErr) {
-        console.warn('[Hybrid] gpt-image-1 fallback error:', dalleErr.message);
-        imageResult = { success: false, error: dalleErr.message };
-      }
+      console.warn('[Hybrid] Gemini failed, falling back to DALL-E 3:', imageResult.error);
+      imageResult = await generateImageWithDALLE(finalPrompt, { width, height });
     }
 
     if (!imageResult.success) {
       return {
         success: false,
-        error: imageResult.error || 'Image generation failed',
-        prompt: enhancedPrompt,
+        error: imageResult.error || 'All image generators failed',
+        prompt: finalPrompt,
       };
     }
 
-    // Use revised prompt if available
-    if (imageResult.revisedPrompt) {
-      enhancedPrompt = imageResult.revisedPrompt;
-    }
-
-    // Step 4: Generate prompt embedding (optional)
-    if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
-      try {
-        const embeddingResult = await generatePromptEmbedding(enhancedPrompt);
-        if (embeddingResult.success) {
-          promptEmbedding = embeddingResult.embedding;
-        }
-      } catch (embErr) {
-        console.warn('[Hybrid] Embedding skipped:', embErr.message);
-      }
-    }
+    // DALL-E 3 kadang merevisi prompt — gunakan revised_prompt jika ada
+    const usedPrompt = imageResult.revisedPrompt || finalPrompt;
 
     const processingTime = Date.now() - startTime;
 
@@ -99,8 +68,8 @@ export async function generateHybridImage({
       success: true,
       imageData: imageResult.imageData,
       mimeType: imageResult.mimeType,
-      prompt: enhancedPrompt,
-      enhancedPrompt,
+      prompt: usedPrompt,
+      enhancedPrompt: usedPrompt,
       originalPrompt: prompt,
       metadata: {
         processingTime,
@@ -113,40 +82,34 @@ export async function generateHybridImage({
         negativePrompt,
         hasReferenceImage: !!referenceImage,
         referenceStrength: strength,
-        imageAnalysis,
-        generator: 'imagen-3.0',
+        generator: imageResult.model || 'dall-e-3',
+        rag: ragMeta,
       },
-      promptEmbedding,
     };
   } catch (error) {
-    console.error('Hybrid generation error:', error);
+    console.error('[Hybrid] Generation error:', error);
     return {
       success: false,
-      error: error.message || 'Hybrid generation failed',
+      error: error.message || 'Generation failed',
       prompt,
     };
   }
 }
 
 export async function generateSimple(prompt) {
-  const enhancedResult = await enhancePromptWithChatGPT(prompt);
-  const imageResult = await generateImageWithGemini(
-    enhancedResult.success ? enhancedResult.enhancedPrompt : prompt
-  );
-
+  const ragResult = await enhancePromptWithRAG(prompt);
+  const enhanced = ragResult.success ? ragResult.enhancedPrompt : prompt;
+  const imageResult = await generateImageWithGemini(enhanced)
+    .then(r => r.success ? r : generateImageWithDALLE(enhanced));
   return {
     success: imageResult.success,
     imageData: imageResult.imageData,
     mimeType: imageResult.mimeType,
-    enhancedPrompt: enhancedResult.enhancedPrompt,
+    enhancedPrompt: enhanced,
     error: imageResult.error,
   };
 }
 
-export { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V } from './chatgpt';
 export { generateImageMetadata } from './gemini';
 
-export default {
-  generateHybridImage,
-  generateSimple,
-};
+export default { generateHybridImage, generateSimple };
