@@ -12,8 +12,7 @@ const SpeedComponents = () => {
       <div ref={cardRef} className='flex flex-col order-2 md:order-1 justify-center gap-4 items-start mt-40 mb-20'>
         <p className='text-white text-sm'>SPEED</p>
         <h1 className='text-white md:text-5xl text-3xl'>Work fast,w/o interruptions</h1>
-        <p className='text-gray-300 text-sm md:w-[75%] w-full'>Scelerisque auctor dolor diam tortor, fames faucibus non interdum nunc.
-          Ultrices nibh sapien elit gravida ac, rutrum molestie adipiscing lacinia.</p>
+        <p className='text-gray-300 text-sm md:w-[75%] w-full'>Streamline your workflow with lightning-fast AI generation. No more waiting—generate professional images in seconds and iterate instantly to perfect your creations.</p>
       </div>
       <img alt='...' ref={cardRef} src="/weeb/futuristics.png" className='relative top-20 order-1 md:order-2 object-cover md:object-none' width={1000} height={500}/>
     </div>

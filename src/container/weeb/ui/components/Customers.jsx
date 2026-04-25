@@ -16,8 +16,7 @@ const CustomersComponents = () => {
       <div className='flex flex-col justify-center gap-4 items-center md:items-start mt-10 md:mt-20 mb-10 md:mb-20 text-center md:text-left'>
         <p className='text-white text-sm'>CUSTOMERS</p>
         <h1 className='text-white text-3xl md:text-5xl'><span className='text-purple-600'>Target</span><span className='border-0 text-red-500 h-20 w-32'></span> <span>customers </span>with<br/> our powerful AI kit</h1>
-        <p className='text-gray-300 text-sm w-full md:w-[55%]'>Scelerisque auctor dolor diam tortor, fames faucibus non interdum nunc.
-          Ultrices nibh sapien elit gravida ac, rutrum molestie adipiscing lacinia.</p>
+        <p className='text-gray-300 text-sm w-full md:w-[55%]'>Reach your ideal audience with precision using our AI-powered targeting. Analyze customer behavior and preferences to deliver personalized content that converts.</p>
             <Link href="/contact" className='hidden md:flex'>
               <span className="hidden md:inline-flex group text-sm relative -ml-6  items-center  text-white px-6 py-2 mt-6 rounded-xl pointer-events-none group-hover:pointer-events-auto ">
                How Targeting Customers Works <ArrowRight className="ml-2 w-5 h-5" color='white' />

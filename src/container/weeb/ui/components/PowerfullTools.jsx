@@ -12,8 +12,7 @@ const PowerfullTools = () => {
       <div ref={cardRef} className='flex flex-col order-2 md:order-1 justify-center gap-4 items-start mt-40 mb-20'>
         <p className='text-white text-sm'>POWERFULL</p>
         <h1 className='text-white md:text-5xl text-3xl'>All the tools you can imagine</h1>
-        <p className='text-gray-300 text-sm md:w-[75%] w-full'>Scelerisque auctor dolor diam tortor, fames faucibus non interdum nunc.
-          Ultrices nibh sapien elit gravida ac, rutrum molestie adipiscing lacinia.</p>
+        <p className='text-gray-300 text-sm md:w-[75%] w-full'>Create professional-quality visuals with our comprehensive suite of AI tools. From image generation to editing, our platform provides everything you need to bring your creative vision to life.</p>
       </div>
       <img ref={cardRef} alt='...' src="/weeb/Limbic.png" className='relative top-20 order-1 md:order-2' width={1000} height={500}/>
     </div>
