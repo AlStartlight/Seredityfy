@@ -4,7 +4,7 @@
   "outputDirectory": ".next",
   "functions": {
     "app/api/generate/route.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "app/api/generate/[id]/route.js": {
       "maxDuration": 30
