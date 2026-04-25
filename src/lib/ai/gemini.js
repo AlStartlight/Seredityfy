@@ -50,8 +50,6 @@ export async function generateImageWithGemini(prompt, options = {}) {
       },
       imageConfig: {
         aspectRatio,
-        imageSize: '1K',
-        outputMimeType: 'image/png',
       },
       safetySettings: SAFETY_OFF,
     },
