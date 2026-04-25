@@ -1,5 +1,6 @@
 import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V, generateImageWithDALLE } from './chatgpt';
 import { generateImageWithGemini } from './gemini';
+import { enhancePromptWithRAG } from './promptRag';
 
 export async function generateHybridImage({
   prompt,
@@ -21,15 +22,23 @@ export async function generateHybridImage({
     let promptEmbedding = null;
     let imageAnalysis = null;
 
-    // Step 1: Enhance prompt with ChatGPT (optional — skip if key missing)
-    if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
-      try {
-        const enhancementResult = await enhancePromptWithChatGPT(prompt);
-        if (enhancementResult.success) {
-          enhancedPrompt = enhancementResult.enhancedPrompt;
+    // Step 1: RAG-based prompt enhancement — chunk prompt, retrieve artistic context, reassemble
+    try {
+      const ragResult = await enhancePromptWithRAG(prompt);
+      if (ragResult.success) {
+        enhancedPrompt = ragResult.enhancedPrompt;
+        console.log(`[Hybrid] RAG enhanced prompt (${ragResult.chunksProcessed} chunks, context: ${ragResult.contextUsed})`);
+      }
+    } catch (ragErr) {
+      console.warn('[Hybrid] RAG enhancement skipped:', ragErr.message);
+      // Fallback to ChatGPT enhancement
+      if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
+        try {
+          const enhancementResult = await enhancePromptWithChatGPT(prompt);
+          if (enhancementResult.success) enhancedPrompt = enhancementResult.enhancedPrompt;
+        } catch (enhErr) {
+          console.warn('[Hybrid] ChatGPT fallback enhancement skipped:', enhErr.message);
         }
-      } catch (enhErr) {
-        console.warn('[Hybrid] Prompt enhancement skipped:', enhErr.message);
       }
     }
 

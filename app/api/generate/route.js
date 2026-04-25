@@ -177,22 +177,20 @@ export async function POST(request) {
       console.log('[Generate] Credit deducted. Used:', updated.usedCredits, 'Reset date:', updated.creditResetDate);
     }
 
-    // Push ke Upstash Redis queue
-    await pushJob({
-      imageId: image.id,
-      prompt: prompt.trim(),
-      userId,
-      model,
-      generationMode,
-      width,
-      height,
-      steps,
-      guidanceScale,
-      negativePrompt,
-      visibility,
-      referenceImage,
-      strength,
-    });
+    // Push ke Upstash Redis queue (dengan timeout 5s agar tidak hang)
+    const jobData = {
+      imageId: image.id, prompt: prompt.trim(), userId, model, generationMode,
+      width, height, steps, guidanceScale, negativePrompt, visibility, referenceImage, strength,
+    };
+    try {
+      await Promise.race([
+        pushJob(jobData),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Queue push timeout')), 5000)),
+      ]);
+    } catch (queueErr) {
+      console.warn('[Generate] Queue push failed:', queueErr.message);
+      // Tetap lanjut — worker akan gagal tapi DB record sudah ada, client akan poll
+    }
 
     // Trigger worker sebagai Vercel function terpisah (fire-and-forget)
     const baseUrl = process.env.NEXTAUTH_URL || 'https://www.seredityfy.art';
