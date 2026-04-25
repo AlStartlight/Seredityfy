@@ -1,5 +1,4 @@
 import { generateImageWithGemini } from './gemini';
-import { generateImageWithDALLE } from './chatgpt';
 
 export async function generateHybridImage({
   prompt,
@@ -16,25 +15,18 @@ export async function generateHybridImage({
 }) {
   const startTime = Date.now();
 
-  // Gemini primary
-  let imageResult = await generateImageWithGemini(prompt, { width, height });
-
-  // DALL-E 3 fallback
-  if (!imageResult.success) {
-    console.warn('[Hybrid] Gemini failed, fallback DALL-E 3:', imageResult.error);
-    imageResult = await generateImageWithDALLE(prompt, { width, height });
-  }
+  const imageResult = await generateImageWithGemini(prompt, { width, height });
 
   if (!imageResult.success) {
     return { success: false, error: imageResult.error || 'Generation failed', prompt };
   }
-//bnmn
+
   return {
     success: true,
     imageData: imageResult.imageData,
     mimeType: imageResult.mimeType,
     prompt,
-    enhancedPrompt: imageResult.revisedPrompt || prompt,
+    enhancedPrompt: prompt,
     originalPrompt: prompt,
     metadata: {
       processingTime: Date.now() - startTime,
@@ -47,14 +39,13 @@ export async function generateHybridImage({
       negativePrompt,
       hasReferenceImage: !!referenceImage,
       referenceStrength: strength,
-      generator: imageResult.model || 'dall-e-3',
+      generator: imageResult.model || 'gemini',
     },
   };
 }
 
 export async function generateSimple(prompt) {
-  const result = await generateImageWithGemini(prompt)
-    .then(r => r.success ? r : generateImageWithDALLE(prompt));
+  const result = await generateImageWithGemini(prompt);
   return {
     success: result.success,
     imageData: result.imageData,

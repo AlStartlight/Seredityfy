@@ -58,27 +58,34 @@ export async function generateImageWithGemini(prompt, options = {}) {
   };
 
   try {
-    // Kumpulkan semua chunks dari streaming response untuk ambil image data
-    const streamingResp = await ai.models.generateContentStream(req);
+    // Batas 50s agar function selesai sebelum Vercel timeout di 60s
+    const timeoutMs = 50_000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     let imageData = null;
     let mimeType = 'image/png';
 
-    for await (const chunk of streamingResp) {
-      // Image bisa ada di candidates[].content.parts[]
-      const parts = chunk.candidates?.[0]?.content?.parts ?? [];
-      for (const part of parts) {
-        if (part.inlineData?.mimeType?.startsWith('image/')) {
-          imageData = part.inlineData.data;
-          mimeType = part.inlineData.mimeType;
-          break;
+    try {
+      const streamingResp = await ai.models.generateContentStream(req);
+
+      for await (const chunk of streamingResp) {
+        if (controller.signal.aborted) break;
+        const parts = chunk.candidates?.[0]?.content?.parts ?? [];
+        for (const part of parts) {
+          if (part.inlineData?.mimeType?.startsWith('image/')) {
+            imageData = part.inlineData.data;
+            mimeType = part.inlineData.mimeType;
+            break;
+          }
         }
+        if (imageData) break;
       }
-      if (imageData) break;
+    } finally {
+      clearTimeout(timer);
     }
 
     if (!imageData) {
-      console.warn('[Gemini] No image in streaming response');
       return { success: false, error: 'Gemini returned no image data' };
     }
 
@@ -92,8 +99,9 @@ export async function generateImageWithGemini(prompt, options = {}) {
     };
 
   } catch (err) {
-    console.error('[Gemini] generateImageWithGemini error:', err.message);
-    return { success: false, error: err.message };
+    const isTimeout = err.name === 'AbortError' || err.message?.includes('abort');
+    console.error('[Gemini]', isTimeout ? 'Timeout (>50s)' : 'Error:', err.message);
+    return { success: false, error: isTimeout ? 'Gemini generation timed out' : err.message };
   }
 }
 
