@@ -1,9 +1,9 @@
 import { enhancePromptWithChatGPT, generatePromptEmbedding, analyzeImageWithGPT4V, generateImageWithDALLE } from './chatgpt';
-import { generateImageWithGemini, generateImageMetadata as generateGeminiMetadata } from './gemini';
+import { generateImageWithGemini } from './gemini';
 
 export async function generateHybridImage({
   prompt,
-  userId,
+  userId: _userId,
   model = 'seredityfy-v2',
   generationMode = 'HYBRID',
   width = 1024,
@@ -21,20 +21,28 @@ export async function generateHybridImage({
     let promptEmbedding = null;
     let imageAnalysis = null;
 
-    // Step 1: Enhance prompt with ChatGPT
+    // Step 1: Enhance prompt with ChatGPT (optional — skip if key missing)
     if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
-      const enhancementResult = await enhancePromptWithChatGPT(prompt);
-      if (enhancementResult.success) {
-        enhancedPrompt = enhancementResult.enhancedPrompt;
+      try {
+        const enhancementResult = await enhancePromptWithChatGPT(prompt);
+        if (enhancementResult.success) {
+          enhancedPrompt = enhancementResult.enhancedPrompt;
+        }
+      } catch (enhErr) {
+        console.warn('[Hybrid] Prompt enhancement skipped:', enhErr.message);
       }
     }
 
-    // Step 2: Analyse reference image if provided
+    // Step 2: Analyse reference image if provided (optional)
     if (referenceImage) {
-      const analysisResult = await analyzeImageWithGPT4V(referenceImage);
-      if (analysisResult.success) {
-        imageAnalysis = analysisResult.description;
-        enhancedPrompt = `${enhancedPrompt}. Style reference: ${analysisResult.description}`;
+      try {
+        const analysisResult = await analyzeImageWithGPT4V(referenceImage);
+        if (analysisResult.success) {
+          imageAnalysis = analysisResult.description;
+          enhancedPrompt = `${enhancedPrompt}. Style reference: ${analysisResult.description}`;
+        }
+      } catch (refErr) {
+        console.warn('[Hybrid] Reference image analysis skipped:', refErr.message);
       }
     }
 
@@ -43,7 +51,12 @@ export async function generateHybridImage({
 
     if (!imageResult.success) {
       console.warn('[Hybrid] Gemini failed, falling back to DALL-E 3:', imageResult.error);
-      imageResult = await generateImageWithDALLE(enhancedPrompt, { width, height });
+      try {
+        imageResult = await generateImageWithDALLE(enhancedPrompt, { width, height });
+      } catch (dalleErr) {
+        console.warn('[Hybrid] DALL-E fallback error:', dalleErr.message);
+        imageResult = { success: false, error: dalleErr.message };
+      }
     }
 
     if (!imageResult.success) {
@@ -59,11 +72,15 @@ export async function generateHybridImage({
       enhancedPrompt = imageResult.revisedPrompt;
     }
 
-    // Step 4: Generate prompt embedding
+    // Step 4: Generate prompt embedding (optional)
     if (generationMode === 'HYBRID' || generationMode === 'CHATGPT_ONLY') {
-      const embeddingResult = await generatePromptEmbedding(enhancedPrompt);
-      if (embeddingResult.success) {
-        promptEmbedding = embeddingResult.embedding;
+      try {
+        const embeddingResult = await generatePromptEmbedding(enhancedPrompt);
+        if (embeddingResult.success) {
+          promptEmbedding = embeddingResult.embedding;
+        }
+      } catch (embErr) {
+        console.warn('[Hybrid] Embedding skipped:', embErr.message);
       }
     }
 

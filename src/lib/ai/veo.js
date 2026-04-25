@@ -145,27 +145,61 @@ async function tryVertexAiVeo({ prompt, imageBase64, imageMime, duration, aspect
     }
 
     if (prediction.gcsUri) {
-      /* Proxy through server — browser can't access private GCS URIs */
-      const videoRes = await fetch(prediction.gcsUri, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      /* gs://bucket/path → https://storage.googleapis.com/bucket/path */
+      const httpsUri = prediction.gcsUri.startsWith('gs://')
+        ? prediction.gcsUri.replace(/^gs:\/\/([^/]+)\/(.+)$/, 'https://storage.googleapis.com/$1/$2')
+        : prediction.gcsUri;
 
-      if (videoRes.ok) {
+      try {
+        const videoRes = await fetch(httpsUri, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (!videoRes.ok) {
+          throw new Error(`GCS fetch ${videoRes.status}: ${await videoRes.text().catch(() => '')}`);
+        }
+
         const videoBuffer = await videoRes.arrayBuffer();
         const base64 = Buffer.from(videoBuffer).toString('base64');
+        const mimeType = videoRes.headers.get('content-type') || 'video/mp4';
+
+        /* Upload to Cloudinary for a persistent public URL */
+        try {
+          const { v2: cloudinary } = await import('cloudinary');
+          cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key:    process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+          });
+          const uploadResult = await cloudinary.uploader.upload(
+            `data:${mimeType};base64,${base64}`,
+            { folder: 'seredityfy/videos', resource_type: 'video' }
+          );
+          console.log('[Veo] Uploaded to Cloudinary:', uploadResult.secure_url);
+          return {
+            success: true,
+            videoUrl: uploadResult.secure_url,
+            mimeType,
+            state: 'completed',
+          };
+        } catch (cdnErr) {
+          console.warn('[Veo] Cloudinary upload failed, returning inline base64:', cdnErr.message);
+          return {
+            success: true,
+            videoData: `data:${mimeType};base64,${base64}`,
+            mimeType,
+            state: 'completed',
+          };
+        }
+      } catch (gcsErr) {
+        console.warn('[Veo] GCS download failed:', gcsErr.message);
+        /* Last resort: return the raw GCS URI — will only work if bucket becomes public */
         return {
           success: true,
-          videoData: `data:video/mp4;base64,${base64}`,
+          videoUrl: httpsUri,
           state: 'completed',
         };
       }
-
-      console.warn('[Veo] GCS fetch failed, returning URI anyway');
-      return {
-        success: true,
-        videoUrl: prediction.gcsUri,
-        state: 'completed',
-      };
     }
 
     console.warn('[Veo] Unknown Vertex AI prediction format:', Object.keys(prediction));

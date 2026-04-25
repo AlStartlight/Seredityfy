@@ -20,9 +20,8 @@ function enhancePrompt(prompt) {
  * are tried. Non-image models are excluded to avoid spurious 400 errors.
  *
  * Tried in order:
- *   1. gemini-2.0-flash-exp-image-generation  (current experimental)
- *   2. gemini-2.0-flash-preview-image-generation  (preview stable)
- *   3. gemini-2.5-flash  (text-only fallback, returns prompt as placeholder)
+ *   1. gemini-2.0-flash-preview-image-generation  (current stable preview)
+ *   2. gemini-2.0-flash-exp-image-generation       (legacy experimental name)
  */
 export async function generateImageWithGemini(prompt, options = {}) {
   if (!process.env.GEMINI_API_KEY) {
@@ -32,8 +31,8 @@ export async function generateImageWithGemini(prompt, options = {}) {
   const enhancedPrompt = enhancePrompt(prompt);
 
   const models = [
-    'gemini-2.0-flash-exp-image-generation',
     'gemini-2.0-flash-preview-image-generation',
+    'gemini-2.0-flash-exp-image-generation',
   ];
 
   const body = JSON.stringify({
@@ -51,7 +50,7 @@ export async function generateImageWithGemini(prompt, options = {}) {
   for (const modelId of models) {
     try {
       const url =
-        `https://generativelanguage.googleapis.com/v1alpha/models/` +
+        `https://generativelanguage.googleapis.com/v1beta/models/` +
         `${modelId}:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
       const res = await fetch(url, {
@@ -60,10 +59,18 @@ export async function generateImageWithGemini(prompt, options = {}) {
         body,
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => '');
+        console.warn(`[Gemini] ${modelId} → ${res.status} (non-JSON): ${text.slice(0, 200)}`);
+        continue;
+      }
 
       if (!res.ok) {
-        console.warn(`[Gemini] ${modelId} → ${res.status}`);
+        const errMsg = data?.error?.message || JSON.stringify(data).slice(0, 200);
+        console.warn(`[Gemini] ${modelId} → ${res.status}: ${errMsg}`);
         continue;
       }
 
@@ -81,33 +88,17 @@ export async function generateImageWithGemini(prompt, options = {}) {
         };
       }
 
-      console.warn(`[Gemini] ${modelId} returned no image parts`);
+      const finishReason = data.candidates?.[0]?.finishReason;
+      console.warn(`[Gemini] ${modelId} returned no image parts. finishReason=${finishReason}`);
     } catch (err) {
       console.warn(`[Gemini] ${modelId} error:`, err.message);
     }
   }
 
-  /* Fallback: try gemini-2.5-flash for text-only prompt enrichment */
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', safetySettings });
-    const result = await model.generateContent(
-      `Generate a detailed image generation prompt for: "${enhancedPrompt}". Return only the prompt text.`
-    );
-    const textPrompt = result.response.text().trim();
-    return {
-      success: false,
-      imageDescription: textPrompt,
-      prompt: enhancedPrompt,
-      model: 'gemini-2.5-flash',
-      error: 'Image generation unavailable — use text prompt with another engine',
-    };
-  } catch {
-    return {
-      success: false,
-      error: 'All Gemini models failed. Check API key and quota.',
-    };
-  }
+  return {
+    success: false,
+    error: 'Gemini image generation unavailable — all models failed or returned no image.',
+  };
 }
 
 export async function generateImageMetadata(prompt) {
