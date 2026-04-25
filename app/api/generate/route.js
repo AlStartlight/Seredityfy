@@ -30,11 +30,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    if (prompt.trim().length > 300) {
+    if (prompt.trim().length > 400) {
       return NextResponse.json({
-        error: 'Prompt melebihi batas 300 karakter. Silakan persingkat prompt Anda.',
+        error: 'Prompt melebihi batas 400 karakter. Silakan persingkat prompt Anda.',
         characterCount: prompt.trim().length,
-        maxAllowed: 300,
+        maxAllowed: 400,
       }, { status: 400 });
     }
 
