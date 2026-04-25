@@ -7,11 +7,19 @@ import prisma from "@/src/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  trustHost: true,
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? [GoogleProvider({
           clientId: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          authorization: {
+            params: {
+              prompt: "consent",
+              access_type: "offline",
+              response_type: "code",
+            },
+          },
         })]
       : []),
     CredentialsProvider({
@@ -60,6 +68,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     maxAge: 7 * 24 * 60 * 60,
   },
   callbacks: {
+    async signIn({ account, profile }) {
+      // Google OAuth: langsung izinkan, Google sudah verifikasi email
+      if (account?.provider === "google") {
+        return !!(profile?.email_verified);
+      }
+      // Credentials: emailVerified dicek di authorize()
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
