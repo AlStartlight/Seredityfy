@@ -98,6 +98,11 @@ export async function generateImageWithGemini(prompt, options = {}) {
 
   } catch (err) {
     const isTimeout = err.name === 'AbortError' || err.message?.includes('abort');
+    const isDisabled = err.message?.includes('SERVICE_DISABLED') || err.message?.includes('has not been used') || err.status === 403 || err.code === 403;
+    if (isDisabled) {
+      console.error('[Gemini] API disabled — get an AI Studio key at https://aistudio.google.com/apikey and set GEMINI_API_KEY');
+      return { success: false, error: 'Gemini API disabled or key invalid. Use an AI Studio key from https://aistudio.google.com/apikey' };
+    }
     console.error('[Gemini]', isTimeout ? 'Timeout (>50s)' : 'Error:', err.message);
     return { success: false, error: isTimeout ? 'Gemini generation timed out' : err.message };
   }

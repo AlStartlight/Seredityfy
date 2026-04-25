@@ -1,4 +1,5 @@
 import { generateImageWithGemini } from './gemini';
+import { generateImageWithDALLE } from './chatgpt';
 
 export async function generateHybridImage({
   prompt,
@@ -15,7 +16,14 @@ export async function generateHybridImage({
 }) {
   const startTime = Date.now();
 
-  const imageResult = await generateImageWithGemini(prompt, { width, height });
+  let imageResult = await generateImageWithGemini(prompt, { width, height });
+  let generator = imageResult.model || 'gemini';
+
+  if (!imageResult.success) {
+    console.warn('[Hybrid] Gemini failed, falling back to DALL-E 3:', imageResult.error);
+    imageResult = await generateImageWithDALLE(prompt, { width, height });
+    generator = 'dalle-3';
+  }
 
   if (!imageResult.success) {
     return { success: false, error: imageResult.error || 'Generation failed', prompt };
@@ -26,7 +34,7 @@ export async function generateHybridImage({
     imageData: imageResult.imageData,
     mimeType: imageResult.mimeType,
     prompt,
-    enhancedPrompt: prompt,
+    enhancedPrompt: imageResult.revisedPrompt || prompt,
     originalPrompt: prompt,
     metadata: {
       processingTime: Date.now() - startTime,
@@ -39,7 +47,7 @@ export async function generateHybridImage({
       negativePrompt,
       hasReferenceImage: !!referenceImage,
       referenceStrength: strength,
-      generator: imageResult.model || 'gemini',
+      generator,
     },
   };
 }
