@@ -36,7 +36,7 @@ export async function POST(request) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     let result;
 
@@ -68,9 +68,10 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, prompt });
   } catch (err) {
-    console.error('[gemini-prompt]', err);
+    const detail = err?.errorDetails ?? err?.message ?? String(err);
+    console.error('[gemini-prompt] error:', detail);
     return NextResponse.json(
-      { success: false, error: err.message },
+      { success: false, error: err.message, detail },
       { status: 500 }
     );
   }
