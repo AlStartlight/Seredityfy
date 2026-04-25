@@ -120,7 +120,7 @@ export async function analyzeImageWithGPT4V(imageUrl) {
   }
 }
 
-// DALL-E 3 supported sizes
+// gpt-image-1 supported sizes
 function getDalleSize(width, height) {
   if (width > height) return '1792x1024';
   if (height > width) return '1024x1792';
@@ -137,7 +137,7 @@ export async function generateImageWithDALLE(prompt, options = {}) {
 
   try {
     const response = await openai.images.generate({
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       prompt,
       n: 1,
       size,
@@ -157,7 +157,7 @@ export async function generateImageWithDALLE(prompt, options = {}) {
       revisedPrompt: response.data[0]?.revised_prompt || prompt,
     };
   } catch (error) {
-    console.error('DALL-E generation error:', error);
+    console.error('gpt-image-1 generation error:', error);
     return { success: false, error: error.message };
   }
 }
