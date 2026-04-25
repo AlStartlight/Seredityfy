@@ -150,7 +150,7 @@ export async function generateImageWithDALLE(prompt, options = {}) {
     try {
       response = await openai.images.generate(
         {
-          model: 'gpt-image-1.5',
+          model: 'gpt-image-2',
           prompt,
           n: 1,
           size,

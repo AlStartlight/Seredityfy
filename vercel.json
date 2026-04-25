@@ -4,10 +4,13 @@
   "outputDirectory": ".next",
   "functions": {
     "app/api/generate/route.js": {
-      "maxDuration": 60
+      "maxDuration": 15
     },
     "app/api/generate/[id]/route.js": {
-      "maxDuration": 60
+      "maxDuration": 15
+    },
+    "app/api/queue/worker/route.js": {
+      "maxDuration": 300
     }
   }
 }
