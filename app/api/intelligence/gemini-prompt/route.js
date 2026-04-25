@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 
-const MODEL = 'gemini-2.5-flash-lite-preview-09-2025';
+// Ordered by preference — first available wins
+const MODELS = [
+  'gemini-2.5-flash-lite-preview-09-2025',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
 
 const PROMPT_TEMPLATE = `Analyze this image and convert it into a cinematic video prompt.
 
@@ -18,21 +24,42 @@ Requirements:
 
 Return ONLY the video prompt text, no explanation.`;
 
-const GENERATION_CONFIG = {
-  maxOutputTokens: 65535,
-  temperature: 1,
-  topP: 0.95,
-  thinkingConfig: {
-    thinkingBudget: 0,
-  },
-  tools: [{ googleSearch: {} }],
-  safetySettings: [
-    { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-    { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'OFF' },
-  ],
-};
+const SAFETY_OFF = [
+  { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+  { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'OFF' },
+];
+
+async function tryModels(ai, parts) {
+  for (const model of MODELS) {
+    try {
+      const resp = await ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts }],
+        config: {
+          maxOutputTokens: 65535,
+          temperature: 1,
+          topP: 0.95,
+          safetySettings: SAFETY_OFF,
+        },
+      });
+      const text = resp.text?.trim();
+      if (text) {
+        console.log(`[gemini-prompt] Success with ${model}`);
+        return text;
+      }
+    } catch (err) {
+      const msg = err.message || '';
+      // Stop retrying on auth/key errors — no point trying other models
+      if (msg.includes('SERVICE_DISABLED') || msg.includes('has not been used') || err.status === 403) {
+        throw err;
+      }
+      console.warn(`[gemini-prompt] ${model} failed:`, msg.slice(0, 120));
+    }
+  }
+  return null;
+}
 
 export async function POST(request) {
   try {
@@ -85,35 +112,30 @@ export async function POST(request) {
       parts = [{ text: `${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}` }];
     }
 
-    const resp = await ai.models.generateContent({
-      model: MODEL,
-      contents: [{ role: 'user', parts }],
-      config: GENERATION_CONFIG,
-    });
+    const prompt = await tryModels(ai, parts);
 
-    const prompt = resp.text?.trim();
     if (!prompt) {
       return NextResponse.json(
-        { success: false, error: 'Model returned no text. Check your API key at https://aistudio.google.com/apikey' },
+        { success: false, error: 'All models failed to generate a prompt. Check GOOGLE_CLOUD_API_KEY.' },
         { status: 500 }
       );
     }
 
-    console.log(`[gemini-prompt] Success with ${MODEL}`);
     return NextResponse.json({ success: true, prompt });
 
   } catch (err) {
-    const isDisabled = err.message?.includes('SERVICE_DISABLED') || err.message?.includes('has not been used') || err.status === 403;
+    const msg = err.message || '';
+    const isDisabled = msg.includes('SERVICE_DISABLED') || msg.includes('has not been used') || err.status === 403;
     if (isDisabled) {
-      console.error('[gemini-prompt] API key invalid or API disabled. Get a key at https://aistudio.google.com/apikey');
+      console.error('[gemini-prompt] API key invalid or disabled. Get a key: https://aistudio.google.com/apikey');
       return NextResponse.json(
-        { success: false, error: 'Gemini API disabled. Set GOOGLE_CLOUD_API_KEY from https://aistudio.google.com/apikey' },
+        { success: false, error: 'Gemini API key invalid or disabled. Set GOOGLE_CLOUD_API_KEY from https://aistudio.google.com/apikey' },
         { status: 500 }
       );
     }
-    console.error('[gemini-prompt] error:', err.message);
+    console.error('[gemini-prompt] error:', msg);
     return NextResponse.json(
-      { success: false, error: err.message || 'Internal server error' },
+      { success: false, error: msg || 'Internal server error' },
       { status: 500 }
     );
   }
