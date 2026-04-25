@@ -16,14 +16,35 @@ Requirements:
 
 Return ONLY the video prompt text, no explanation.`;
 
-export async function POST(request) {
-  let imageUrl = null;
-  let imageDescription = null;
+// Model candidates — dicoba berurutan sampai berhasil
+const MODELS = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+];
 
+async function tryGenerateWithFallback(genAI, parts) {
+  for (const modelId of MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelId });
+      const result = await model.generateContent(parts);
+      const text = result.response.text().trim();
+      if (text) {
+        console.log(`[gemini-prompt] Success with model: ${modelId}`);
+        return text;
+      }
+    } catch (err) {
+      console.warn(`[gemini-prompt] ${modelId} failed:`, err.message?.slice(0, 100));
+    }
+  }
+  return null;
+}
+
+export async function POST(request) {
   try {
     const body = await request.json();
-    imageUrl = body.imageUrl;
-    imageDescription = body.imageDescription;
+    const { imageUrl, imageDescription } = body;
 
     if (!imageUrl && !imageDescription) {
       return NextResponse.json(
@@ -32,9 +53,8 @@ export async function POST(request) {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_CLOUD_API_KEY;
     if (!apiKey) {
-      console.error('[gemini-prompt] GEMINI_API_KEY not configured');
       return NextResponse.json(
         { success: false, error: 'GEMINI_API_KEY is not configured' },
         { status: 500 }
@@ -42,53 +62,56 @@ export async function POST(request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    let result;
+    let parts;
 
-    try {
-      if (imageUrl && imageUrl.startsWith('data:')) {
-        const [mimeType, base64Data] = imageUrl.split(',');
-        const mime = mimeType.replace('data:', '').replace(';base64', '');
-
-        result = await model.generateContent([
+    if (imageUrl?.startsWith('data:')) {
+      // Base64 data URL
+      const commaIdx = imageUrl.indexOf(',');
+      const meta = imageUrl.slice(0, commaIdx);        // "data:image/png;base64"
+      const base64Data = imageUrl.slice(commaIdx + 1); // actual base64
+      const mimeType = meta.replace('data:', '').replace(';base64', '');
+      parts = [
+        { text: PROMPT_TEMPLATE },
+        { inlineData: { mimeType, data: base64Data } },
+      ];
+    } else if (imageUrl?.startsWith('http')) {
+      // Remote URL — fetch and convert to base64
+      try {
+        const imageResp = await fetch(imageUrl, { signal: AbortSignal.timeout(8000) });
+        if (!imageResp.ok) throw new Error(`HTTP ${imageResp.status}`);
+        const buffer = await imageResp.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        const mimeType = imageResp.headers.get('content-type') || 'image/png';
+        parts = [
           { text: PROMPT_TEMPLATE },
-          { inlineData: { mimeType: mime, data: base64Data } },
-        ]);
-      } else if (imageUrl && imageUrl.startsWith('http')) {
-        const imageResp = await fetch(imageUrl);
-        if (!imageResp.ok) {
-          throw new Error(`Failed to fetch image: ${imageResp.status}`);
-        }
-        const imageBuffer = await imageResp.arrayBuffer();
-        const base64 = Buffer.from(imageBuffer).toString('base64');
-        const mime = imageResp.headers.get('content-type') || 'image/png';
-
-        result = await model.generateContent([
-          { text: PROMPT_TEMPLATE },
-          { inlineData: { mimeType: mime, data: base64 } },
-        ]);
-      } else {
-        result = await model.generateContent(
-          `${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}`
-        );
+          { inlineData: { mimeType, data: base64 } },
+        ];
+      } catch (fetchErr) {
+        console.warn('[gemini-prompt] Image fetch failed, using description fallback:', fetchErr.message);
+        // Fallback: text-only dengan URL sebagai konteks
+        parts = [`${PROMPT_TEMPLATE}\n\nImage URL: ${imageUrl}`];
       }
-    } catch (modelErr) {
-      console.error('[gemini-prompt] Model generation error:', modelErr.message);
+    } else {
+      // Text description only
+      parts = [`${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}`];
+    }
+
+    const prompt = await tryGenerateWithFallback(genAI, parts);
+
+    if (!prompt) {
       return NextResponse.json(
-        { success: false, error: 'Failed to generate prompt', detail: modelErr.message },
+        { success: false, error: 'All Gemini models failed to generate a prompt. Check your GEMINI_API_KEY in Vercel.' },
         { status: 500 }
       );
     }
 
-    const prompt = result.response.text().trim();
-
     return NextResponse.json({ success: true, prompt });
+
   } catch (err) {
-    const detail = err?.errorDetails ?? err?.message ?? String(err);
-    console.error('[gemini-prompt] error:', detail);
+    console.error('[gemini-prompt] error:', err.message);
     return NextResponse.json(
-      { success: false, error: err.message, detail },
+      { success: false, error: err.message || 'Internal server error' },
       { status: 500 }
     );
   }
