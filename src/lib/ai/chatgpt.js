@@ -142,14 +142,25 @@ export async function generateImageWithDALLE(prompt, options = {}) {
   const size = getDalleSize(width, height);
 
   try {
-    const response = await openai.images.generate({
-      model: 'gpt-image-1',
-      prompt,
-      n: 1,
-      size,
-      quality: mapQuality(quality),
-      // response_format tidak didukung oleh gpt-image-1; b64_json selalu dikembalikan
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 50_000); // 50s — bawah limit Vercel 60s
+
+    let response;
+    try {
+      response = await openai.images.generate(
+        {
+          model: 'gpt-image-1.5',
+          prompt,
+          n: 1,
+          size,
+          quality: mapQuality(quality),
+          // response_format tidak didukung oleh gpt-image-1; b64_json selalu dikembalikan
+        },
+        { signal: controller.signal }
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const b64 = response.data[0]?.b64_json;
     if (!b64) {
@@ -163,6 +174,10 @@ export async function generateImageWithDALLE(prompt, options = {}) {
       revisedPrompt: prompt,
     };
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('gpt-image-1 generation timeout (>50s)');
+      return { success: false, error: 'gpt-image-1 timed out — try a simpler prompt or smaller size.' };
+    }
     console.error('gpt-image-1 generation error:', error);
     return { success: false, error: error.message };
   }

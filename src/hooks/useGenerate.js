@@ -22,7 +22,17 @@ export function useGenerate() {
         body: JSON.stringify(params),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        const text = await response.text().catch(() => '');
+        const preview = text.slice(0, 120);
+        if (response.status === 504 || text.toLowerCase().includes('timeout')) {
+          throw new Error('Generation timed out — image took too long. Try a smaller size or simpler prompt.');
+        }
+        throw new Error(`Server error (${response.status}): ${preview || 'No details available'}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Generation failed');
