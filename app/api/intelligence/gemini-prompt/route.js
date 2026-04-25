@@ -17,9 +17,13 @@ Requirements:
 Return ONLY the video prompt text, no explanation.`;
 
 export async function POST(request) {
+  let imageUrl = null;
+  let imageDescription = null;
+
   try {
     const body = await request.json();
-    const { imageUrl, imageDescription } = body;
+    imageUrl = body.imageUrl;
+    imageDescription = body.imageDescription;
 
     if (!imageUrl && !imageDescription) {
       return NextResponse.json(
@@ -28,39 +32,52 @@ export async function POST(request) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('[gemini-prompt] GEMINI_API_KEY not configured');
       return NextResponse.json(
         { success: false, error: 'GEMINI_API_KEY is not configured' },
         { status: 500 }
       );
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     let result;
 
-    if (imageUrl && imageUrl.startsWith('data:')) {
-      const [mimeType, base64Data] = imageUrl.split(',');
-      const mime = mimeType.replace('data:', '').replace(';base64', '');
+    try {
+      if (imageUrl && imageUrl.startsWith('data:')) {
+        const [mimeType, base64Data] = imageUrl.split(',');
+        const mime = mimeType.replace('data:', '').replace(';base64', '');
 
-      result = await model.generateContent([
-        { text: PROMPT_TEMPLATE },
-        { inlineData: { mimeType: mime, data: base64Data } },
-      ]);
-    } else if (imageUrl && imageUrl.startsWith('http')) {
-      const imageResp = await fetch(imageUrl);
-      const imageBuffer = await imageResp.arrayBuffer();
-      const base64 = Buffer.from(imageBuffer).toString('base64');
-      const mime = imageResp.headers.get('content-type') || 'image/png';
+        result = await model.generateContent([
+          { text: PROMPT_TEMPLATE },
+          { inlineData: { mimeType: mime, data: base64Data } },
+        ]);
+      } else if (imageUrl && imageUrl.startsWith('http')) {
+        const imageResp = await fetch(imageUrl);
+        if (!imageResp.ok) {
+          throw new Error(`Failed to fetch image: ${imageResp.status}`);
+        }
+        const imageBuffer = await imageResp.arrayBuffer();
+        const base64 = Buffer.from(imageBuffer).toString('base64');
+        const mime = imageResp.headers.get('content-type') || 'image/png';
 
-      result = await model.generateContent([
-        { text: PROMPT_TEMPLATE },
-        { inlineData: { mimeType: mime, data: base64 } },
-      ]);
-    } else {
-      result = await model.generateContent(
-        `${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}`
+        result = await model.generateContent([
+          { text: PROMPT_TEMPLATE },
+          { inlineData: { mimeType: mime, data: base64 } },
+        ]);
+      } else {
+        result = await model.generateContent(
+          `${PROMPT_TEMPLATE}\n\nImage description: ${imageDescription}`
+        );
+      }
+    } catch (modelErr) {
+      console.error('[gemini-prompt] Model generation error:', modelErr.message);
+      return NextResponse.json(
+        { success: false, error: 'Failed to generate prompt', detail: modelErr.message },
+        { status: 500 }
       );
     }
 
