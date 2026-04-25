@@ -29,7 +29,9 @@ export async function GET() {
     db_candidates: dbVars,
     env: {
       nextauth_url:    !!process.env.NEXTAUTH_URL,
+      auth_url:        !!process.env.AUTH_URL,
       nextauth_secret: !!process.env.NEXTAUTH_SECRET,
+      auth_secret:     !!process.env.AUTH_SECRET,
       google_client:   !!process.env.GOOGLE_CLIENT_ID,
     },
     db_connect: null,

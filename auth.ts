@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import prisma from "@/src/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // NextAuth v5 mencari AUTH_SECRET; fallback ke NEXTAUTH_SECRET untuk kompatibilitas
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   trustHost: true,
   providers: [
