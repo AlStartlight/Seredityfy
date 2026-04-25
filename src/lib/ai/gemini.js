@@ -20,8 +20,9 @@ function enhancePrompt(prompt) {
  * are tried. Non-image models are excluded to avoid spurious 400 errors.
  *
  * Tried in order:
- *   1. gemini-2.0-flash-preview-image-generation  (current stable preview)
- *   2. gemini-2.0-flash-exp-image-generation       (legacy experimental name)
+ *   1. gemini-2.0-flash-preview-image-generation  (image generation)
+ *   2. gemini-2.0-flash-exp-image-generation       (legacy experimental)
+ *   3. gemini-1.5-flash                           (fallback)
  */
 export async function generateImageWithGemini(prompt, options = {}) {
   if (!process.env.GEMINI_API_KEY) {
@@ -31,6 +32,7 @@ export async function generateImageWithGemini(prompt, options = {}) {
   const enhancedPrompt = enhancePrompt(prompt);
 
   const models = [
+    'gemini-1.5-flash',
     'gemini-2.0-flash-preview-image-generation',
     'gemini-2.0-flash-exp-image-generation',
   ];
@@ -106,7 +108,7 @@ export async function generateImageMetadata(prompt) {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', safetySettings });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', safetySettings });
 
     const result = await model.generateContent(`
       Generate metadata for an AI image from this prompt: "${prompt}"
