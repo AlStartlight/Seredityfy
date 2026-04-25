@@ -3,7 +3,7 @@ import prisma from '@/src/lib/prisma';
 import { popJob } from '@/src/lib/queue/upstashQueue';
 import { SUBSCRIPTION_LIMITS } from '@/src/lib/services/visibility';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 async function deductCredit(userId, creditCost) {
   if (!userId || !creditCost) return;

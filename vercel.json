@@ -10,7 +10,7 @@
       "maxDuration": 30
     },
     "app/api/queue/worker/route.js": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   }
 }
