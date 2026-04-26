@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import { generateVideoWithLuma, pollLumaGeneration } from '@/src/lib/ai/luma';
 import { generateVideoWithVeo } from '@/src/lib/ai/veo';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const CREDIT_PER_SECOND = 24;
 const calcCreditCost = (durationSeconds) => Math.max(1, durationSeconds) * CREDIT_PER_SECOND;
