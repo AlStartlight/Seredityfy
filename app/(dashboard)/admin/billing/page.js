@@ -14,10 +14,10 @@ import {
 import { useRouter } from "next/navigation";
 
 const CREDIT_PLANS = [
-  { id: 'FREE', name: 'Free', credits: 40, price: '$0', period: '/week' },
-  { id: 'STARTER', name: 'Starter', credits: 200, price: '$9', period: '/week' },
-  { id: 'PRO', name: 'Pro', credits: 500, price: '$29', period: '/week' },
-  { id: 'ENTERPRISE', name: 'Enterprise', credits: 'Unlimited', price: '$99', period: '/week' },
+  { id: 'FREE',       name: 'Free',       credits: 40,          priceWeekly: '$0',    priceMonthly: '$0'      },
+  { id: 'STARTER',    name: 'Starter',    credits: 200,         priceWeekly: '$40',   priceMonthly: '$160'    },
+  { id: 'PRO',        name: 'Pro',        credits: 500,         priceWeekly: '$60',   priceMonthly: '$240'    },
+  { id: 'ENTERPRISE', name: 'Enterprise', credits: 'Unlimited', priceWeekly: '$400',  priceMonthly: '$1,600'  },
 ];
 
 export default function BillingPage() {
@@ -157,7 +157,7 @@ export default function BillingPage() {
                 {loading ? 'Loading...' : currentPlan.name} Tier
               </h3>
               <p className="text-on-surface-variant mt-1 font-body">
-                {loading ? '...' : `${currentPlan.credits} credits per week`}
+                {loading ? '...' : `${currentPlan.credits === 'Unlimited' ? 'Unlimited' : currentPlan.credits} credits/week · ${currentPlan.priceWeekly}/week`}
               </p>
             </div>
             <button onClick={() => router.push('/admin/billing/credits')} className="text-primary font-label font-bold flex items-center gap-1 hover:underline">
@@ -167,9 +167,12 @@ export default function BillingPage() {
           </div>
           <div className="mt-auto grid grid-cols-3 gap-4 lg:gap-8 pt-6 lg:pt-8 relative z-10">
             <div>
-              <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Monthly Cost</p>
+              <p className="text-on-surface-variant text-[10px] uppercase font-label tracking-widest mb-1">Weekly Cost</p>
               <p className="text-2xl font-bold font-headline text-on-surface">
-                {loading ? '---' : currentPlan.price}
+                {loading ? '---' : currentPlan.priceWeekly}
+              </p>
+              <p className="text-[10px] text-on-surface-variant/60 font-label mt-0.5">
+                {loading ? '' : `${currentPlan.priceMonthly} /month`}
               </p>
             </div>
             <div>
