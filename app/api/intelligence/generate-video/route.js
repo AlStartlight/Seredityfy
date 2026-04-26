@@ -109,7 +109,6 @@ export async function POST(request) {
     if (engine === 'VEO') {
       const started = await startVeoOperation({
         prompt: enrichedPrompt,
-        imageUrl: sourceImageUrl,
         durationSeconds: duration,
         aspectRatio,
         resolution,

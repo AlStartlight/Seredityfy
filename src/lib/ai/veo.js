@@ -266,7 +266,9 @@ async function downloadAndUploadVideo(videoUri, apiKey) {
 }
 
 /* ── Start Veo operation (non-blocking) — returns operationName immediately */
-export async function startVeoOperation({ prompt, imageUrl, durationSeconds = 8, aspectRatio = '16:9', resolution = '720p' }) {
+// veo-3.1-generate-preview via Gemini API is text-to-video only.
+// The prompt is already image-enriched by Gemini upstream, so no image source needed.
+export async function startVeoOperation({ prompt, durationSeconds = 8, aspectRatio = '16:9', resolution = '720p' }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return { success: false, error: 'GEMINI_API_KEY not configured' };
 
@@ -274,17 +276,9 @@ export async function startVeoOperation({ prompt, imageUrl, durationSeconds = 8,
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
 
-    const source = { prompt };
-
-    // Fix: Veo requires bytesBase64Encoded + mimeType, not a URL
-    const imgData = await imageUrlToBase64(imageUrl);
-    if (imgData) {
-      source.image = imgData;
-    }
-
     const operation = await ai.models.generateVideos({
       model: 'veo-3.1-generate-preview',
-      source,
+      source: { prompt },
       config: {
         numberOfVideos: 1,
         aspectRatio,
