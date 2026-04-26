@@ -99,9 +99,9 @@ model Subscription {
   plan            SubscriptionPlan @default(FREE)
   billingCycle    BillingCycle     @default(WEEKLY)
   validUntil      DateTime?
-  credits         Int              @default(10)
+  credits         Int              @default(40)
   usedCredits     Int              @default(0)
-  monthlyCredits  Int?             @default(10)
+  monthlyCredits  Int?             @default(160)
   creditResetDate DateTime?
   canSharePublic  Boolean          @default(true)
   createdAt       DateTime         @default(now())

@@ -25,6 +25,26 @@ const SAFETY_OFF = [
   { category: 'HARM_CATEGORY_HARASSMENT',         threshold: 'OFF' },
 ];
 
+const REFERENCE_MODE_PROMPTS = {
+  face: 'IMPORTANT: A reference image is provided. You MUST preserve the exact facial identity, features, skin tone, and expression from the reference person in the generated output. The person must look identical to the reference.',
+  style: 'IMPORTANT: A reference image is provided. Match the artistic style, color palette, lighting, texture, and visual aesthetic from the reference image exactly.',
+  composition: 'IMPORTANT: A reference image is provided. Mirror the composition, spatial layout, framing, and overall structure of the reference image.',
+  full: 'IMPORTANT: A reference image is provided. Use it as a complete guide — preserve the facial identity, match the artistic style, and follow the composition and layout.',
+};
+
+async function fetchReferenceAsBase64(url) {
+  try {
+    const res = await fetch(url);
+    const buf = await res.arrayBuffer();
+    return {
+      data: Buffer.from(buf).toString('base64'),
+      mimeType: res.headers.get('content-type') || 'image/jpeg',
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Generate image menggunakan Gemini 3.1 Flash Image Preview (@google/genai SDK).
  * Prompt diterima sudah di-enhance oleh RAG + LangChain dari hybrid.js.
@@ -34,12 +54,24 @@ export async function generateImageWithGemini(prompt, options = {}) {
     return { success: false, error: 'GEMINI_API_KEY is not configured' };
   }
 
-  const { width = 1024, height = 1024 } = options;
+  const { width = 1024, height = 1024, referenceImage = null, referenceMode = 'face' } = options;
   const aspectRatio = getAspectRatio(width, height);
+
+  // Build parts: optional reference image + text prompt with instruction
+  const parts = [];
+  if (referenceImage) {
+    const ref = await fetchReferenceAsBase64(referenceImage);
+    if (ref) {
+      const instruction = REFERENCE_MODE_PROMPTS[referenceMode] || REFERENCE_MODE_PROMPTS.face;
+      parts.push({ text: instruction });
+      parts.push({ inlineData: { mimeType: ref.mimeType, data: ref.data } });
+    }
+  }
+  parts.push({ text: prompt });
 
   const req = {
     model: 'gemini-3.1-flash-image-preview',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts }],
     config: {
       maxOutputTokens: 32768,
       temperature: 1,

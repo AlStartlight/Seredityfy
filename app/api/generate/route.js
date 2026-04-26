@@ -23,6 +23,7 @@ export async function POST(request) {
       negativePrompt = null,
       visibility: requestedVisibility = 'PUBLIC',
       referenceImage = null,
+      referenceMode = 'face',
       strength = 0.7,
     } = body;
 
@@ -78,7 +79,7 @@ export async function POST(request) {
 
       const result = await generateHybridImage({
         prompt: prompt.trim(), userId, model, generationMode,
-        width, height, steps, guidanceScale, negativePrompt, referenceImage, strength,
+        width, height, steps, guidanceScale, negativePrompt, referenceImage, referenceMode, strength,
       });
 
       if (!result.success) {

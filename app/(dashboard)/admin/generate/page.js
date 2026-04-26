@@ -43,6 +43,7 @@ function GeneratorContent() {
   
   const [referenceImage, setReferenceImage] = useState(null);
   const [referencePreview, setReferencePreview] = useState(null);
+  const [referenceMode, setReferenceMode] = useState('face');
   const [isDragging, setIsDragging] = useState(false);
   const [strength, setStrength] = useState(0.7);
   const [credits, setCredits] = useState({ used: 0, remaining: 40, cost: 8 });
@@ -99,6 +100,7 @@ function GeneratorContent() {
 
     if (referenceImage) {
       generateData.referenceImage = referenceImage;
+      generateData.referenceMode = referenceMode;
       generateData.strength = strength;
     }
 
@@ -116,7 +118,7 @@ function GeneratorContent() {
     } catch (err) {
       console.error('Generation failed:', err);
     }
-  }, [prompt, selectedModel, selectedAspect, guidanceScale, negativePrompt, fixSeed, seed, visibility, referenceImage, strength, generate]);
+  }, [prompt, selectedModel, selectedAspect, guidanceScale, negativePrompt, fixSeed, seed, visibility, referenceImage, referenceMode, strength, generate]);
 
   const handleFileSelect = useCallback((file) => {
     if (!file) return;
@@ -289,7 +291,7 @@ fetch('/api/upload/reference', {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high text-xs font-label text-purple-200/80 hover:bg-surface-container-highest transition-colors disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-sm">image</span>
-                    Init Image
+                    Reference
                   </button>
                   <input
                     ref={fileInputRef}
@@ -372,6 +374,38 @@ fetch('/api/upload/reference', {
                     <span>Prompt</span>
                     <span>Reference</span>
                   </div>
+                </div>
+
+                {/* Reference Mode Selector */}
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <span className="text-[10px] font-label uppercase tracking-widest text-purple-300/40">Reference Mode</span>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {[
+                      { id: 'face',        icon: 'face',          label: 'Face Match' },
+                      { id: 'style',       icon: 'palette',       label: 'Style' },
+                      { id: 'composition', icon: 'crop',          label: 'Composition' },
+                      { id: 'full',        icon: 'auto_awesome',  label: 'Full Ref' },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setReferenceMode(m.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-label transition-all ${
+                          referenceMode === m.id
+                            ? 'bg-primary/15 border border-primary/30 text-primary'
+                            : 'bg-white/5 border border-transparent hover:bg-white/10 text-purple-300/50'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-sm">{m.icon}</span>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10px] text-purple-300/30 leading-relaxed">
+                    {referenceMode === 'face'        && 'AI akan meniru wajah/identitas dari reference image.'}
+                    {referenceMode === 'style'       && 'AI akan meniru gaya seni & palet warna dari reference.'}
+                    {referenceMode === 'composition' && 'AI akan mengikuti komposisi & layout dari reference.'}
+                    {referenceMode === 'full'        && 'AI akan menggunakan wajah, gaya, & komposisi sekaligus.'}
+                  </p>
                 </div>
               </div>
             ) : (

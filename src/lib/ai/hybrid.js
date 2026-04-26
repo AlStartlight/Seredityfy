@@ -12,11 +12,12 @@ export async function generateHybridImage({
   guidanceScale = 8.5,
   negativePrompt = null,
   referenceImage = null,
+  referenceMode = 'face',
   strength = 0.7,
 }) {
   const startTime = Date.now();
 
-  let imageResult = await generateImageWithGemini(prompt, { width, height });
+  let imageResult = await generateImageWithGemini(prompt, { width, height, referenceImage, referenceMode });
   let generator = imageResult.model || 'gemini';
 
   if (!imageResult.success) {
@@ -46,6 +47,7 @@ export async function generateHybridImage({
       guidanceScale,
       negativePrompt,
       hasReferenceImage: !!referenceImage,
+      referenceMode: referenceImage ? referenceMode : null,
       referenceStrength: strength,
       generator,
     },
