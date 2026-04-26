@@ -6,8 +6,17 @@ import { generateVideoWithVeo } from '@/src/lib/ai/veo';
 
 export const maxDuration = 300;
 
-const CREDIT_PER_SECOND = 8;
+const CREDIT_PER_SECOND = 24;
 const calcCreditCost = (durationSeconds) => Math.max(1, durationSeconds) * CREDIT_PER_SECOND;
+
+// Inject Cloudinary text overlay without re-encoding — works for FREE users
+function applyCloudinaryWatermark(videoUrl) {
+  if (!videoUrl || !videoUrl.includes('cloudinary.com/') || !videoUrl.includes('/upload/')) {
+    return videoUrl;
+  }
+  const watermark = 'l_text:Arial_18_bold_italic:seredityfy.art,co_white,o_75,g_south_east,x_16,y_12';
+  return videoUrl.replace('/upload/', `/upload/${watermark}/`);
+}
 
 export async function POST(request) {
   try {
@@ -24,7 +33,9 @@ export async function POST(request) {
       motionStyle = 'cinematic',
       cameraStyle = 'slow push in',
       style = 'ultra realistic',
+      platform = 'youtube',
       aspectRatio = '16:9',
+      resolution = '720p',
     } = body;
 
     if (!prompt || !sourceImageUrl) {
@@ -36,12 +47,15 @@ export async function POST(request) {
 
     const creditCost = calcCreditCost(duration);
 
-    /* Credit check for authenticated users */
+    /* Fetch subscription once — reused for credit check + watermark decision */
+    let subscription = null;
+    let userPlan = 'FREE';
     if (userId) {
-      const subscription = await prisma.subscription.findUnique({ where: { userId } });
+      subscription = await prisma.subscription.findUnique({ where: { userId } });
+      userPlan = subscription?.plan ?? 'FREE';
 
       if (subscription) {
-        const available = subscription.plan === 'ENTERPRISE'
+        const available = userPlan === 'ENTERPRISE'
           ? Infinity
           : (subscription.credits ?? 40) - (subscription.usedCredits ?? 0);
 
@@ -59,6 +73,8 @@ export async function POST(request) {
       }
     }
 
+    const isFreeUser = userPlan === 'FREE';
+
     /* Create video record */
     const video = await prisma.generatedVideo.create({
       data: {
@@ -66,7 +82,7 @@ export async function POST(request) {
         sourceImageUrl,
         sourceImageName,
         status: 'PENDING',
-        engine: engine,
+        engine,
         duration,
         motionStyle,
         cameraStyle,
@@ -74,6 +90,7 @@ export async function POST(request) {
         aspectRatio,
         creditsCost: creditCost,
         userId,
+        metadata: { platform, resolution, watermarked: isFreeUser },
       },
     });
 
@@ -89,28 +106,22 @@ export async function POST(request) {
     /* Call Veo or fallback engine */
     const enrichedPrompt = `${prompt}, camera: ${cameraStyle}, motion: ${motionStyle}, style: ${style}`;
     const genResult = engine === 'VEO'
-      ? await generateVideoWithVeo({ prompt: enrichedPrompt, imageUrl: sourceImageUrl, aspectRatio, duration })
+      ? await generateVideoWithVeo({ prompt: enrichedPrompt, imageUrl: sourceImageUrl, aspectRatio, resolution, duration })
       : await generateVideoWithLuma({ prompt: enrichedPrompt, imageUrl: sourceImageUrl, aspectRatio, duration });
 
     if (!genResult.success) {
-      await updateStatus('FAILED', { metadata: { error: 'Generation failed' } });
+      await updateStatus('FAILED', { metadata: { error: 'Generation failed', platform, resolution } });
       return NextResponse.json(
         { error: 'Video generation failed', id: video.id },
         { status: 500 }
       );
     }
 
-    /* Resolve output — Veo returns completed, Luma needs polling */
+    /* Resolve output — Veo returns completed, Luma may need polling */
     let videoUrl = genResult.mockVideoUrl || genResult.videoUrl || genResult.videoData || null;
     let thumbnailUrl = genResult.thumbnailUrl || null;
 
-    if (engine === 'VEO') {
-      /* Veo returns results synchronously — no polling needed */
-      if (!videoUrl && !genResult.success) {
-        await updateStatus('FAILED', { metadata: { error: 'Veo returned no output' } });
-        return NextResponse.json({ error: 'Video generation failed', id: video.id }, { status: 500 });
-      }
-    } else if (genResult.generationId && !genResult.mockVideoUrl) {
+    if (engine !== 'VEO' && genResult.generationId && !genResult.mockVideoUrl) {
       /* Luma polling loop */
       const pollStart = Date.now();
       const POLL_TIMEOUT = 60_000;
@@ -135,6 +146,9 @@ export async function POST(request) {
       }
     }
 
+    /* Apply Cloudinary watermark for FREE users */
+    const finalVideoUrl = isFreeUser ? applyCloudinaryWatermark(videoUrl) : videoUrl;
+
     /* Deduct credits */
     if (userId) {
       await prisma.subscription.update({
@@ -144,18 +158,22 @@ export async function POST(request) {
     }
 
     await updateStatus('COMPLETED', {
-      videoUrl,
+      videoUrl: finalVideoUrl,
       thumbnailUrl: thumbnailUrl || sourceImageUrl,
     });
 
     return NextResponse.json({
       id: video.id,
       status: 'COMPLETED',
-      videoUrl,
+      videoUrl: finalVideoUrl,
       thumbnailUrl: thumbnailUrl || sourceImageUrl,
       prompt,
       engine,
       duration,
+      platform,
+      aspectRatio,
+      resolution,
+      watermarked: isFreeUser,
       creditsCost: creditCost,
       creditPerSecond: CREDIT_PER_SECOND,
     }, { status: 201 });

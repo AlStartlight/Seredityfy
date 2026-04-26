@@ -220,7 +220,7 @@ async function tryVertexAiVeo({ prompt, imageBase64, duration, aspectRatio }) {
 }
 
 /* ── Google GenAI SDK — operations-based Veo 3.1 (primary) ────────────── */
-async function tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds, aspectRatio, apiKey }) {
+async function tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds, aspectRatio, resolution, apiKey }) {
   try {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
@@ -238,7 +238,7 @@ async function tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds, aspect
       config: {
         numberOfVideos: 1,
         aspectRatio: aspectRatio || '16:9',
-        resolution: '720p',
+        resolution: resolution || '720p',
         personGeneration: 'dont_allow',
         durationSeconds: durationSeconds || 8,
       },
@@ -304,12 +304,12 @@ async function tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds, aspect
 }
 
 /* ── Main export ───────────────────────────────────────────────────────── */
-export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16:9', duration = 8 }) {
+export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16:9', resolution = '720p', duration = 8 }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   /* 1 — Try new GenAI operations API (veo-3.1-generate-preview) */
   if (apiKey) {
-    const result = await tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds: duration, aspectRatio, apiKey });
+    const result = await tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds: duration, aspectRatio, resolution, apiKey });
     if (result) return result;
   }
 

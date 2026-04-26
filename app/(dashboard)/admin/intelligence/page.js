@@ -32,10 +32,18 @@ const CAMERA_OPTS = ['Slow push in', 'Orbit around', 'Pan left/right', 'Tracking
 const MOTION_OPTS  = ['Cinematic', 'Slow motion', 'Hyper real', 'Dreamlike', 'Action', 'Flowing'];
 const STYLE_OPTS   = ['Ultra Realistic', 'Unreal Engine 5', 'Cinematic', 'Anime', '3D Render', 'Pixel Art'];
 
-const CREDIT_PER_SECOND = 8;
-// 1-10 individual seconds + preset clips
+const CREDIT_PER_SECOND = 24;
 const DURATION_SECONDS  = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const DURATION_PRESETS  = [10, 20, 30, 60];
+
+const PLATFORMS = [
+  { id: 'youtube',   label: 'YouTube',  icon: 'smart_display',          aspectRatio: '16:9', resolution: '1080p', tag: '16:9 · 1080p' },
+  { id: 'ig_story',  label: 'IG Story', icon: 'photo_camera',           aspectRatio: '9:16', resolution: '1080p', tag: '9:16 · 1080p' },
+  { id: 'tiktok',    label: 'TikTok',   icon: 'music_note',             aspectRatio: '9:16', resolution: '1080p', tag: '9:16 · 1080p' },
+  { id: 'facebook',  label: 'Facebook', icon: 'groups',                 aspectRatio: '16:9', resolution: '720p',  tag: '16:9 · 720p' },
+  { id: 'portrait',  label: 'Portrait', icon: 'stay_current_portrait',  aspectRatio: '9:16', resolution: '720p',  tag: '9:16 · 720p' },
+  { id: 'landscape', label: 'Landscape',icon: 'stay_current_landscape', aspectRatio: '16:9', resolution: '720p',  tag: '16:9 · 720p' },
+];
 
 const TAG_COLOR = {
   Cyberpunk: 'text-primary bg-primary/10',
@@ -208,14 +216,47 @@ function PreviewPanel({ sourceImage, videoData, generating, generationStep }) {
 
         {hasVideo && (
           <>
-            <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-900/60 backdrop-blur-sm border border-emerald-500/25">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[8px] font-label text-emerald-400 uppercase tracking-widest font-bold">Video Ready</span>
+            {/* Top-left: Video Ready + platform */}
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-900/60 backdrop-blur-sm border border-emerald-500/25">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[8px] font-label text-emerald-400 uppercase tracking-widest font-bold">Video Ready</span>
+              </div>
+              {videoData?.platform && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
+                  <span className="text-[8px] font-label text-white/70 uppercase tracking-widest">
+                    {videoData.platform.replace('ig_story', 'IG Story').replace('tiktok', 'TikTok').replace('youtube', 'YouTube').replace('facebook', 'Facebook').replace('portrait', 'Portrait').replace('landscape', 'Landscape')}
+                  </span>
+                </div>
+              )}
+              {videoData?.watermarked && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-900/60 backdrop-blur-sm border border-amber-500/25">
+                  <span className="material-symbols-outlined text-[9px] text-amber-400" style={FILL}>verified</span>
+                  <span className="text-[8px] font-label text-amber-400 font-bold">Watermarked</span>
+                </div>
+              )}
             </div>
-            {videoData?.duration && (
-              <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
-                <span className="material-symbols-outlined text-emerald-400 text-[10px]" style={FILL}>schedule</span>
-                <span className="text-[8px] font-label text-white/80 uppercase tracking-widest">{videoData.duration}s</span>
+            {/* Top-right: duration + resolution */}
+            <div className="absolute top-3 right-3 flex items-center gap-1">
+              {videoData?.resolution && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
+                  <span className="text-[8px] font-label text-white/70 uppercase tracking-widest">{videoData.resolution}</span>
+                </div>
+              )}
+              {videoData?.duration && (
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
+                  <span className="material-symbols-outlined text-emerald-400 text-[10px]" style={FILL}>schedule</span>
+                  <span className="text-[8px] font-label text-white/80 uppercase tracking-widest">{videoData.duration}s</span>
+                </div>
+              )}
+            </div>
+            {/* Bottom watermark notice for FREE users */}
+            {videoData?.watermarked && (
+              <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-900/50 backdrop-blur-sm border border-amber-500/20">
+                <span className="material-symbols-outlined text-[12px] text-amber-400 shrink-0">workspace_premium</span>
+                <span className="text-[9px] font-label text-amber-300/80">
+                  Watermark aktif untuk akun Free. Upgrade untuk video tanpa watermark.
+                </span>
               </div>
             )}
           </>
@@ -234,11 +275,13 @@ function PreviewPanel({ sourceImage, videoData, generating, generationStep }) {
 function ConfigPanel({
   prompt, setPrompt, engine, setEngine, camera, setCamera,
   motion, setMotion, style, setStyle, duration, setDuration,
+  platform, setPlatform,
   src, generating, onGenerate, onEnhance, enhancing,
   videoData, credits, genError,
 }) {
   const ready = !!src && prompt.trim().length > 0 && !generating;
   const hasVideo = videoData?.videoUrl;
+  const activePlatform = PLATFORMS.find(p => p.id === platform) || PLATFORMS[0];
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-y-auto no-scrollbar pr-1">
@@ -276,6 +319,39 @@ function ConfigPanel({
               className={`flex-1 flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl text-[9px] font-label transition-all ${engine === e.id ? 'bg-primary/15 border border-primary/30 text-primary' : 'bg-white/5 border border-transparent hover:border-white/10 text-on-surface-variant/50'}`}>
               <span className="font-bold">{e.name}</span>
               {e.badge && <span className="text-[7px] px-1 py-0.5 rounded-full bg-secondary/20 text-secondary font-bold mt-0.5">{e.badge}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Platform / Format */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant/60">
+            Platform & Format
+          </label>
+          <span className="text-[8px] font-label text-on-surface-variant/30 px-1.5 py-0.5 rounded-full bg-white/5">
+            {activePlatform.tag}
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {PLATFORMS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPlatform(p.id)}
+              className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-[8px] font-label font-bold transition-all ${
+                platform === p.id
+                  ? 'bg-primary/15 border border-primary/30 text-primary'
+                  : 'bg-white/5 border border-transparent hover:border-white/15 text-on-surface-variant/45 hover:text-on-surface/70'
+              }`}
+            >
+              <span className={`material-symbols-outlined text-[16px] ${platform === p.id ? 'text-primary' : 'text-on-surface-variant/40'}`} style={FILL}>
+                {p.icon}
+              </span>
+              <span>{p.label}</span>
+              <span className={`text-[6px] font-mono ${platform === p.id ? 'text-primary/60' : 'text-on-surface-variant/20'}`}>
+                {p.aspectRatio}
+              </span>
             </button>
           ))}
         </div>
@@ -441,13 +517,14 @@ const KEYFRAMES = `
 `;
 
 export default function IntelligencePage() {
-  const [src, setSrc]           = useState(null);
-  const [prompt, setPrompt]     = useState('');
-  const [engine, setEngine]     = useState('VEO');
-  const [camera, setCamera]     = useState('Slow push in');
-  const [motion, setMotion]     = useState('Cinematic');
-  const [style, setStyle]       = useState('Ultra Realistic');
-  const [duration, setDuration] = useState(8);
+  const [src, setSrc]               = useState(null);
+  const [prompt, setPrompt]         = useState('');
+  const [engine, setEngine]         = useState('VEO');
+  const [camera, setCamera]         = useState('Slow push in');
+  const [motion, setMotion]         = useState('Cinematic');
+  const [style, setStyle]           = useState('Ultra Realistic');
+  const [duration, setDuration]     = useState(8);
+  const [platform, setPlatform]     = useState('youtube');
 
   const [generating, setGenerating]   = useState(false);
   const [enhancing, setEnhancing]     = useState(false);
@@ -543,6 +620,7 @@ export default function IntelligencePage() {
         setGenStep(i + 1);
       }
 
+      const activePlatform = PLATFORMS.find(p => p.id === platform) || PLATFORMS[0];
       const res = await fetch('/api/intelligence/generate-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -555,6 +633,9 @@ export default function IntelligencePage() {
           motionStyle: motion,
           cameraStyle: camera,
           style,
+          platform,
+          aspectRatio: activePlatform.aspectRatio,
+          resolution: activePlatform.resolution,
         }),
       });
       const data = await res.json();
@@ -574,7 +655,7 @@ export default function IntelligencePage() {
     } finally {
       setGenerating(false);
     }
-  }, [src, prompt, engine, duration, motion, camera, style, credits]);
+  }, [src, prompt, engine, duration, motion, camera, style, platform, credits]);
 
   const handleDownload = useCallback(() => {
     if (!videoData?.videoUrl) return;
@@ -600,8 +681,14 @@ export default function IntelligencePage() {
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/40 border border-emerald-500/30" style={{ animation: 'fadeSlide .4s ease' }}>
                 <span className="material-symbols-outlined text-emerald-400 text-[14px]" style={FILL}>check_circle</span>
                 <span className="text-[10px] font-label text-emerald-400 uppercase tracking-widest font-bold">
-                  Generated · {duration}s · {engine}
+                  Generated · {videoData.duration}s · {videoData.aspectRatio || '16:9'} · {videoData.resolution || '720p'}
                 </span>
+              </div>
+            )}
+            {videoData?.watermarked && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/40 border border-amber-500/30" style={{ animation: 'fadeSlide .4s ease' }}>
+                <span className="material-symbols-outlined text-amber-400 text-[14px]" style={FILL}>workspace_premium</span>
+                <span className="text-[10px] font-label text-amber-400 uppercase tracking-widest font-bold">Free · Watermarked</span>
               </div>
             )}
           </div>
@@ -609,7 +696,7 @@ export default function IntelligencePage() {
             Intelligence <span className="text-secondary italic font-light">&</span> Hub
           </h1>
           <p className="mt-2 text-sm text-on-surface-variant/70 font-body max-w-2xl">
-            Upload or select an image · Gemini auto-enriches the prompt · Generate 8s cinematic video with Veo 3.1
+            Upload or select an image · Choose platform (YouTube, IG Story, TikTok, Facebook…) · Generate cinematic video with Veo 3.1 · 8 CR/s
           </p>
         </header>
 
@@ -670,6 +757,7 @@ export default function IntelligencePage() {
               motion={motion} setMotion={setMotion}
               style={style}   setStyle={setStyle}
               duration={duration} setDuration={setDuration}
+              platform={platform} setPlatform={setPlatform}
               src={src}
               generating={generating}
               enhancing={enhancing}
