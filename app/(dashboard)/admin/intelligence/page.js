@@ -31,7 +31,11 @@ const ENGINES = [
 const CAMERA_OPTS = ['Slow push in', 'Orbit around', 'Pan left/right', 'Tracking shot', 'Drone flyover', 'Static subtle'];
 const MOTION_OPTS  = ['Cinematic', 'Slow motion', 'Hyper real', 'Dreamlike', 'Action', 'Flowing'];
 const STYLE_OPTS   = ['Ultra Realistic', 'Unreal Engine 5', 'Cinematic', 'Anime', '3D Render', 'Pixel Art'];
-const DURATION_OPTS = [4, 8, 12];
+
+const CREDIT_PER_SECOND = 8;
+// 1-10 individual seconds + preset clips
+const DURATION_SECONDS  = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const DURATION_PRESETS  = [10, 20, 30, 60];
 
 const TAG_COLOR = {
   Cyberpunk: 'text-primary bg-primary/10',
@@ -298,28 +302,95 @@ function ConfigPanel({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant/60 block mb-2">
-            Style
-          </label>
-          <select value={style} onChange={e => setStyle(e.target.value)}
-            className="w-full bg-surface-container-low border border-white/10 rounded-xl px-3 py-2 text-[11px] text-on-surface font-body focus:outline-none focus:border-primary/50">
-            {STYLE_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant/60 block mb-2">
+      <div>
+        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant/60 block mb-2">
+          Style
+        </label>
+        <select value={style} onChange={e => setStyle(e.target.value)}
+          className="w-full bg-surface-container-low border border-white/10 rounded-xl px-3 py-2 text-[11px] text-on-surface font-body focus:outline-none focus:border-primary/50">
+          {STYLE_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      {/* Duration Selector */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant/60">
             Duration
           </label>
-          <div className="flex gap-1.5">
-            {DURATION_OPTS.map(d => (
-              <button key={d} onClick={() => setDuration(d)}
-                className={`flex-1 py-2 rounded-xl text-[9px] font-label font-bold uppercase tracking-widest transition-all ${duration === d ? 'bg-secondary/20 text-secondary border border-secondary/30' : 'bg-white/5 text-on-surface-variant/45 hover:text-secondary border border-transparent'}`}>
-                {d}s
-              </button>
-            ))}
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20">
+            <span className="material-symbols-outlined text-[10px] text-secondary">bolt</span>
+            <span className="text-[9px] font-label font-bold text-secondary">{CREDIT_PER_SECOND} CR/s</span>
           </div>
+        </div>
+
+        {/* Per-second: 1–10 */}
+        <div className="grid grid-cols-5 gap-1.5 mb-2">
+          {DURATION_SECONDS.map(d => {
+            const cost = d * CREDIT_PER_SECOND;
+            const canAfford = !credits || (credits.remaining ?? 0) >= cost;
+            return (
+              <button
+                key={d}
+                disabled={!canAfford}
+                onClick={() => setDuration(d)}
+                title={`${cost} credits`}
+                className={`flex flex-col items-center py-2 rounded-xl text-[9px] font-label font-bold transition-all ${
+                  duration === d
+                    ? 'bg-secondary/20 text-secondary border border-secondary/30'
+                    : canAfford
+                    ? 'bg-white/5 text-on-surface-variant/50 hover:text-secondary border border-transparent hover:border-secondary/20'
+                    : 'bg-white/[0.02] text-on-surface-variant/20 border border-transparent cursor-not-allowed opacity-40'
+                }`}
+              >
+                <span className="font-bold">{d}s</span>
+                <span className={`text-[7px] font-mono mt-0.5 ${duration === d ? 'text-secondary/70' : 'text-on-surface-variant/30'}`}>
+                  {cost}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Preset clips: 10/20/30/60 */}
+        <div className="pt-2 border-t border-white/5">
+          <span className="text-[8px] font-label text-on-surface-variant/30 uppercase tracking-widest mb-1.5 block">Preset Clips</span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {DURATION_PRESETS.map(d => {
+              const cost = d * CREDIT_PER_SECOND;
+              const canAfford = !credits || (credits.remaining ?? 0) >= cost;
+              return (
+                <button
+                  key={d}
+                  disabled={!canAfford}
+                  onClick={() => setDuration(d)}
+                  title={`${cost} credits`}
+                  className={`flex flex-col items-center py-2 rounded-xl text-[9px] font-label font-bold transition-all ${
+                    duration === d
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : canAfford
+                      ? 'bg-white/5 text-on-surface-variant/50 hover:text-primary border border-transparent hover:border-primary/20'
+                      : 'bg-white/[0.02] text-on-surface-variant/20 border border-transparent cursor-not-allowed opacity-40'
+                  }`}
+                >
+                  <span className="font-bold">{d}s</span>
+                  <span className={`text-[7px] font-mono mt-0.5 ${duration === d ? 'text-primary/70' : 'text-on-surface-variant/30'}`}>
+                    {cost} CR
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cost summary */}
+        <div className="mt-2 flex items-center justify-between px-3 py-2 rounded-xl bg-surface-container-low border border-white/5">
+          <span className="text-[9px] font-label text-on-surface-variant/40">
+            Selected: <span className="text-on-surface/70 font-bold">{duration}s</span>
+          </span>
+          <span className="text-[9px] font-label">
+            Cost: <span className="text-secondary font-bold">{duration * CREDIT_PER_SECOND} credits</span>
+          </span>
         </div>
       </div>
 
@@ -350,7 +421,8 @@ function ConfigPanel({
         )}
         {src && !generating && !hasVideo && (
           <span className="text-[9px] text-on-surface-variant/30 font-label">
-            Cost: <span className="text-secondary font-bold">24 credits</span>
+            Cost: <span className="text-secondary font-bold">{duration * CREDIT_PER_SECOND} credits</span>
+            <span className="ml-1 text-on-surface-variant/20">({duration}s × {CREDIT_PER_SECOND}/s)</span>
           </span>
         )}
         {credits !== null && (
@@ -494,7 +566,8 @@ export default function IntelligencePage() {
       setVideoData(data);
 
       if (credits) {
-        setCredits(prev => ({ remaining: Math.max(0, (prev?.remaining ?? 0) - 24) }));
+        const cost = duration * CREDIT_PER_SECOND;
+        setCredits(prev => ({ remaining: Math.max(0, (prev?.remaining ?? 0) - cost) }));
       }
     } catch (err) {
       setGenError(err.message);

@@ -4,7 +4,10 @@ import { auth } from '@/auth';
 import { generateVideoWithLuma, pollLumaGeneration } from '@/src/lib/ai/luma';
 import { generateVideoWithVeo } from '@/src/lib/ai/veo';
 
-const VIDEO_CREDIT_COST = 24;
+export const maxDuration = 300;
+
+const CREDIT_PER_SECOND = 8;
+const calcCreditCost = (durationSeconds) => Math.max(1, durationSeconds) * CREDIT_PER_SECOND;
 
 export async function POST(request) {
   try {
@@ -31,18 +34,25 @@ export async function POST(request) {
       );
     }
 
+    const creditCost = calcCreditCost(duration);
+
     /* Credit check for authenticated users */
     if (userId) {
       const subscription = await prisma.subscription.findUnique({ where: { userId } });
 
       if (subscription) {
-        const maxCredits = subscription.plan === 'ENTERPRISE' ? Infinity : 500;
-        const usedCredits = subscription.usedCredits || 0;
-        const available = subscription.plan === 'ENTERPRISE' ? Infinity : maxCredits - usedCredits;
+        const available = subscription.plan === 'ENTERPRISE'
+          ? Infinity
+          : (subscription.credits ?? 40) - (subscription.usedCredits ?? 0);
 
-        if (available < VIDEO_CREDIT_COST) {
+        if (available < creditCost) {
           return NextResponse.json(
-            { error: `Insufficient credits. Need ${VIDEO_CREDIT_COST}, have ${Math.max(0, available)}.` },
+            {
+              error: `Insufficient credits. Need ${creditCost} (${duration}s × ${CREDIT_PER_SECOND} CR/s), have ${Math.max(0, available)}.`,
+              creditCost,
+              available: Math.max(0, available),
+              creditPerSecond: CREDIT_PER_SECOND,
+            },
             { status: 429 }
           );
         }
@@ -62,7 +72,7 @@ export async function POST(request) {
         cameraStyle,
         style,
         aspectRatio,
-        creditsCost: VIDEO_CREDIT_COST,
+        creditsCost: creditCost,
         userId,
       },
     });
@@ -129,7 +139,7 @@ export async function POST(request) {
     if (userId) {
       await prisma.subscription.update({
         where: { userId },
-        data: { usedCredits: { increment: VIDEO_CREDIT_COST } },
+        data: { usedCredits: { increment: creditCost } },
       }).catch(() => {});
     }
 
@@ -146,7 +156,8 @@ export async function POST(request) {
       prompt,
       engine,
       duration,
-      creditsCost: VIDEO_CREDIT_COST,
+      creditsCost: creditCost,
+      creditPerSecond: CREDIT_PER_SECOND,
     }, { status: 201 });
 
   } catch (err) {

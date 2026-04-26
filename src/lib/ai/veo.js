@@ -219,11 +219,101 @@ async function tryVertexAiVeo({ prompt, imageBase64, duration, aspectRatio }) {
   }
 }
 
+/* ── Google GenAI SDK — operations-based Veo 3.1 (primary) ────────────── */
+async function tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds, aspectRatio, apiKey }) {
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey });
+
+    const source = { prompt };
+
+    // Attach image if URL is provided and publicly reachable
+    if (imageUrl && !imageUrl.startsWith('data:')) {
+      source.image = { url: imageUrl };
+    }
+
+    let operation = await ai.models.generateVideos({
+      model: 'veo-3.1-generate-preview',
+      source,
+      config: {
+        numberOfVideos: 1,
+        aspectRatio: aspectRatio || '16:9',
+        resolution: '720p',
+        personGeneration: 'dont_allow',
+        durationSeconds: durationSeconds || 8,
+      },
+    });
+
+    // Poll until done — max 240s to stay within Vercel's 300s limit
+    const deadline = Date.now() + 240_000;
+    while (!operation.done && Date.now() < deadline) {
+      console.log(`[Veo] ${operation.name} not ready, retrying in 10s…`);
+      await new Promise(r => setTimeout(r, 10_000));
+      operation = await ai.operations.getVideosOperation({ operation });
+    }
+
+    if (!operation.done) {
+      return { success: false, error: 'Veo generation timed out after 240s' };
+    }
+
+    const videos = operation.response?.generatedVideos;
+    if (!videos?.length) {
+      return { success: false, error: 'Veo returned no videos' };
+    }
+
+    const videoUri = videos[0]?.video?.uri;
+    if (!videoUri) {
+      return { success: false, error: 'Veo returned no video URI' };
+    }
+
+    // Download the video from Google's URI
+    const videoRes = await fetch(`${videoUri}&key=${apiKey}`);
+    if (!videoRes.ok) throw new Error(`Video download failed: ${videoRes.status}`);
+
+    const buffer = await videoRes.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    const mimeType = videoRes.headers.get('content-type') || 'video/mp4';
+
+    // Upload to Cloudinary for a persistent public URL
+    try {
+      const { v2: cloudinary } = await import('cloudinary');
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key:    process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+      const uploaded = await cloudinary.uploader.upload(
+        `data:${mimeType};base64,${base64}`,
+        { folder: 'seredityfy/videos', resource_type: 'video' }
+      );
+      console.log('[Veo] Uploaded to Cloudinary:', uploaded.secure_url);
+      return { success: true, videoUrl: uploaded.secure_url, mimeType, state: 'completed' };
+    } catch (cdnErr) {
+      console.warn('[Veo] Cloudinary upload failed, returning base64 inline:', cdnErr.message);
+      return {
+        success: true,
+        videoData: `data:${mimeType};base64,${base64}`,
+        mimeType,
+        state: 'completed',
+      };
+    }
+  } catch (err) {
+    console.warn('[Veo] GenAI operations error:', err.message);
+    return null;
+  }
+}
+
 /* ── Main export ───────────────────────────────────────────────────────── */
 export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16:9', duration = 8 }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  /* Try Gemini API Veo models first */
+  /* 1 — Try new GenAI operations API (veo-3.1-generate-preview) */
+  if (apiKey) {
+    const result = await tryGenAIVeoOperations({ prompt, imageUrl, durationSeconds: duration, aspectRatio, apiKey });
+    if (result) return result;
+  }
+
+  /* 2 — Try legacy Gemini REST API */
   if (apiKey) {
     let imageBase64 = null;
     let imageMime = 'image/png';
@@ -232,10 +322,7 @@ export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16
       try {
         if (imageUrl.startsWith('data:')) {
           const match = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-          if (match) {
-            imageMime = match[1];
-            imageBase64 = match[2];
-          }
+          if (match) { imageMime = match[1]; imageBase64 = match[2]; }
         }
       } catch {}
     }
@@ -244,7 +331,7 @@ export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16
     if (geminiResult) return geminiResult;
   }
 
-  /* Try Vertex AI Veo 3.1 */
+  /* 3 — Try Vertex AI Veo 3.1 */
   if (apiKey) {
     let imageBase64 = null;
 
@@ -261,11 +348,10 @@ export async function generateVideoWithVeo({ prompt, imageUrl, aspectRatio = '16
     if (vertexResult) return vertexResult;
   }
 
-  /* All real methods failed — surface the error instead of a broken mock */
-  console.error('[Veo] All generation methods failed. Check GOOGLE_CLOUD_PROJECT (must be project ID, not display name), GOOGLE_CLOUD_LOCATION (must be us-central1), GOOGLE_SERVICE_ACCOUNT_KEY, and GEMINI_API_KEY.');
+  console.error('[Veo] All generation methods failed. Check GEMINI_API_KEY, GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GOOGLE_SERVICE_ACCOUNT_KEY.');
   return {
     success: false,
-    error: 'Video generation unavailable. Check server configuration (GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION / GOOGLE_SERVICE_ACCOUNT_KEY).',
+    error: 'Video generation unavailable. Check server configuration.',
   };
 }
 
