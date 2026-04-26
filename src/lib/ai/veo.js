@@ -283,7 +283,6 @@ export async function startVeoOperation({ prompt, durationSeconds = 8, aspectRat
         numberOfVideos: 1,
         aspectRatio,
         resolution,
-        personGeneration: 'dont_allow',
         durationSeconds,
       },
     });
