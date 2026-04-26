@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/src/lib/prisma';
 import { auth } from '@/auth';
 import { generateVideoWithLuma, pollLumaGeneration } from '@/src/lib/ai/luma';
-import { generateVideoWithVeo } from '@/src/lib/ai/veo';
+import { generateVideoWithVeo, startVeoOperation } from '@/src/lib/ai/veo';
 
 export const maxDuration = 60;
 
@@ -103,79 +103,78 @@ export async function POST(request) {
 
     await updateStatus('PROCESSING');
 
-    /* Call Veo or fallback engine */
     const enrichedPrompt = `${prompt}, camera: ${cameraStyle}, motion: ${motionStyle}, style: ${style}`;
-    const genResult = engine === 'VEO'
-      ? await generateVideoWithVeo({ prompt: enrichedPrompt, imageUrl: sourceImageUrl, aspectRatio, resolution, duration })
-      : await generateVideoWithLuma({ prompt: enrichedPrompt, imageUrl: sourceImageUrl, aspectRatio, duration });
+
+    /* ── VEO: async — start operation, return 202, client polls /status ── */
+    if (engine === 'VEO') {
+      const started = await startVeoOperation({
+        prompt: enrichedPrompt,
+        imageUrl: sourceImageUrl,
+        durationSeconds: duration,
+        aspectRatio,
+        resolution,
+      });
+
+      if (!started.success) {
+        await updateStatus('FAILED', { metadata: { error: started.error, platform, resolution } });
+        return NextResponse.json({ error: started.error || 'Failed to start Veo generation', id: video.id }, { status: 500 });
+      }
+
+      await prisma.generatedVideo.update({
+        where: { id: video.id },
+        data: { metadata: { platform, resolution, watermarked: isFreeUser, operationName: started.operationName } },
+      });
+
+      return NextResponse.json({
+        id: video.id,
+        status: 'PROCESSING',
+        operationName: started.operationName,
+        platform,
+        aspectRatio,
+        resolution,
+        duration,
+        watermarked: isFreeUser,
+        creditsCost: creditCost,
+      }, { status: 202 });
+    }
+
+    /* ── Non-VEO (Luma etc.): synchronous ───────────────────────────────── */
+    const genResult = await generateVideoWithLuma({ prompt: enrichedPrompt, imageUrl: sourceImageUrl, aspectRatio, duration });
 
     if (!genResult.success) {
       await updateStatus('FAILED', { metadata: { error: 'Generation failed', platform, resolution } });
-      return NextResponse.json(
-        { error: 'Video generation failed', id: video.id },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Video generation failed', id: video.id }, { status: 500 });
     }
 
-    /* Resolve output — Veo returns completed, Luma may need polling */
     let videoUrl = genResult.mockVideoUrl || genResult.videoUrl || genResult.videoData || null;
     let thumbnailUrl = genResult.thumbnailUrl || null;
 
-    if (engine !== 'VEO' && genResult.generationId && !genResult.mockVideoUrl) {
-      /* Luma polling loop */
+    if (genResult.generationId && !genResult.mockVideoUrl) {
       const pollStart = Date.now();
-      const POLL_TIMEOUT = 60_000;
-      const POLL_INTERVAL = 3_000;
-
-      while (Date.now() - pollStart < POLL_TIMEOUT) {
-        await new Promise(r => setTimeout(r, POLL_INTERVAL));
-        const pollResult = await pollLumaGeneration(genResult.generationId);
-
-        if (pollResult.state === 'completed') {
-          videoUrl = pollResult.videoUrl;
-          thumbnailUrl = pollResult.thumbnailUrl;
-          break;
-        }
-        if (pollResult.state === 'failed') {
-          await updateStatus('FAILED', { metadata: { error: pollResult.error } });
-          return NextResponse.json(
-            { error: pollResult.error || 'Video generation failed', id: video.id },
-            { status: 500 }
-          );
+      while (Date.now() - pollStart < 55_000) {
+        await new Promise(r => setTimeout(r, 3_000));
+        const p = await pollLumaGeneration(genResult.generationId);
+        if (p.state === 'completed') { videoUrl = p.videoUrl; thumbnailUrl = p.thumbnailUrl; break; }
+        if (p.state === 'failed') {
+          await updateStatus('FAILED', { metadata: { error: p.error } });
+          return NextResponse.json({ error: p.error || 'Video generation failed', id: video.id }, { status: 500 });
         }
       }
     }
 
-    /* Apply Cloudinary watermark for FREE users */
     const finalVideoUrl = isFreeUser ? applyCloudinaryWatermark(videoUrl) : videoUrl;
 
-    /* Deduct credits */
     if (userId) {
-      await prisma.subscription.update({
-        where: { userId },
-        data: { usedCredits: { increment: creditCost } },
-      }).catch(() => {});
+      await prisma.subscription.update({ where: { userId }, data: { usedCredits: { increment: creditCost } } }).catch(() => {});
     }
 
-    await updateStatus('COMPLETED', {
-      videoUrl: finalVideoUrl,
-      thumbnailUrl: thumbnailUrl || sourceImageUrl,
-    });
+    await updateStatus('COMPLETED', { videoUrl: finalVideoUrl, thumbnailUrl: thumbnailUrl || sourceImageUrl });
 
     return NextResponse.json({
-      id: video.id,
-      status: 'COMPLETED',
-      videoUrl: finalVideoUrl,
-      thumbnailUrl: thumbnailUrl || sourceImageUrl,
-      prompt,
-      engine,
-      duration,
-      platform,
-      aspectRatio,
-      resolution,
-      watermarked: isFreeUser,
-      creditsCost: creditCost,
-      creditPerSecond: CREDIT_PER_SECOND,
+      id: video.id, status: 'COMPLETED',
+      videoUrl: finalVideoUrl, thumbnailUrl: thumbnailUrl || sourceImageUrl,
+      prompt, engine, duration, platform, aspectRatio, resolution,
+      watermarked: isFreeUser, creditsCost: creditCost, creditPerSecond: CREDIT_PER_SECOND,
     }, { status: 201 });
 
   } catch (err) {

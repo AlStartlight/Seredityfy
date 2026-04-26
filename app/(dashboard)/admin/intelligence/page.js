@@ -642,9 +642,35 @@ export default function IntelligencePage() {
 
       if (!res.ok) throw new Error(data.error ?? 'Generation failed');
 
+      let finalData = data;
+
+      /* Veo returns 202 PROCESSING — poll until COMPLETED */
+      if (res.status === 202 && data.status === 'PROCESSING') {
+        const videoId = data.id;
+        const POLL_DEADLINE = Date.now() + 5 * 60 * 1000; // 5 minutes
+        let settled = false;
+
+        while (Date.now() < POLL_DEADLINE) {
+          await new Promise(r => setTimeout(r, 8_000));
+          const pollRes = await fetch(`/api/intelligence/generate-video/status?id=${videoId}`);
+          const pollData = await pollRes.json();
+
+          if (pollData.status === 'COMPLETED') {
+            finalData = pollData;
+            settled = true;
+            break;
+          }
+          if (pollData.status === 'FAILED') {
+            throw new Error('Veo video generation failed');
+          }
+        }
+
+        if (!settled) throw new Error('Video generation timed out after 5 minutes');
+      }
+
       await new Promise(r => setTimeout(r, delays[delays.length - 1]));
       setGenStep(PIPELINE_STEPS.length);
-      setVideoData(data);
+      setVideoData(finalData);
 
       if (credits) {
         const cost = duration * CREDIT_PER_SECOND;
