@@ -77,9 +77,6 @@ export async function generateImageWithGemini(prompt, options = {}) {
       temperature: 1,
       topP: 0.95,
       responseModalities: ['TEXT', 'IMAGE'],
-      thinkingConfig: {
-        thinkingLevel: 'HIGH',
-      },
       imageConfig: {
         aspectRatio,
       },

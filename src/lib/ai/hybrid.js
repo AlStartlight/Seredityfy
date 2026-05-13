@@ -35,7 +35,7 @@ export async function generateHybridImage({
     imageData: imageResult.imageData,
     mimeType: imageResult.mimeType,
     prompt,
-    enhancedPrompt: imageResult.revisedPrompt || prompt,
+    enhancedPrompt: prompt,
     originalPrompt: prompt,
     metadata: {
       processingTime: Date.now() - startTime,

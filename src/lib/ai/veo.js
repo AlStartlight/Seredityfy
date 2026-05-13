@@ -127,7 +127,7 @@ async function tryVertexAiVeo({ prompt, imageBase64, duration, aspectRatio }) {
         parameters: {
           sampleCount: 1,
           personGeneration: 'allow_adult',
-          enhancePrompt: true,
+          enhancePrompt: false,
         },
       }),
     });
